@@ -13,10 +13,12 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    color: #e2e8f0;
+    color: #f8fafc;
     background:
-      radial-gradient(circle at top, rgba(192, 132, 252, 0.18), transparent 30%),
-      linear-gradient(180deg, #020617 0%, #111827 100%);
+      radial-gradient(circle at top, rgba(251, 191, 36, 0.12), transparent 22%),
+      radial-gradient(circle at 20% 20%, rgba(236, 72, 153, 0.14), transparent 24%),
+      radial-gradient(circle at 80% 10%, rgba(34, 211, 238, 0.16), transparent 20%),
+      linear-gradient(180deg, #060816 0%, #0b1023 40%, #05070f 100%);
   }
 
   * {
@@ -31,7 +33,8 @@
     margin: 0;
     min-width: 320px;
     min-height: 100vh;
-    @apply bg-slate-950 text-slate-200;
+    background: transparent;
+    @apply text-slate-200;
   }
 
   button,
@@ -46,12 +49,181 @@
 
 @layer components {
   .glass-panel {
-    @apply rounded-3xl border border-slate-400/20 bg-slate-950/70 backdrop-blur-xl;
-    box-shadow: 0 20px 60px rgba(15, 23, 42, 0.18);
+    @apply rounded-[2rem] border border-white/10 bg-white/6 backdrop-blur-2xl;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.12),
+      0 24px 80px rgba(2, 6, 23, 0.45);
   }
 
-  .pill-button {
-    @apply rounded-full px-4 py-3 text-sm font-medium transition duration-200 enabled:hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50;
+  .hero-panel {
+    @apply relative rounded-[2.5rem] border border-white/10 backdrop-blur-2xl;
+    background:
+      radial-gradient(circle at top left, rgba(249, 115, 22, 0.2), transparent 24%),
+      radial-gradient(circle at 80% 10%, rgba(168, 85, 247, 0.24), transparent 30%),
+      linear-gradient(135deg, rgba(8, 15, 35, 0.96), rgba(18, 11, 35, 0.88));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.12),
+      0 40px 120px rgba(0, 0, 0, 0.45);
+  }
+
+  .stage-panel {
+    @apply relative rounded-[2.3rem] border border-white/10 backdrop-blur-2xl;
+    background:
+      radial-gradient(circle at 50% 10%, rgba(250, 204, 21, 0.15), transparent 28%),
+      radial-gradient(circle at 15% 25%, rgba(236, 72, 153, 0.16), transparent 25%),
+      linear-gradient(180deg, rgba(12, 18, 38, 0.92), rgba(7, 10, 22, 0.92));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.12),
+      0 36px 110px rgba(0, 0, 0, 0.44);
+  }
+
+  .dramatic-button {
+    @apply inline-flex items-center justify-center rounded-full border px-5 py-3 text-sm font-semibold uppercase tracking-[0.18em] transition duration-300 enabled:hover:-translate-y-1 disabled:cursor-not-allowed disabled:opacity-45;
+  }
+
+  .dramatic-button-small {
+    @apply px-4 py-2 text-[0.7rem];
+  }
+
+  .dramatic-button-primary {
+    @apply border-orange-300/40 text-white;
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.9), rgba(236, 72, 153, 0.85), rgba(168, 85, 247, 0.88));
+    box-shadow: 0 20px 50px rgba(249, 115, 22, 0.3);
+  }
+
+  .dramatic-button-muted {
+    @apply border-white/12 bg-white/8 text-white/90;
+  }
+
+  .dramatic-button-danger {
+    @apply border-red-300/20 bg-red-400/10 text-red-100;
+  }
+
+  .dramatic-button-emerald {
+    @apply border-emerald-300/20 bg-emerald-400/12 text-emerald-100;
+  }
+
+  .dramatic-input {
+    @apply rounded-[1.25rem] border border-white/12 bg-black/20 px-4 py-3 text-white outline-none transition;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  .dramatic-input:focus {
+    border-color: rgba(168, 85, 247, 0.7);
+    box-shadow:
+      0 0 0 4px rgba(168, 85, 247, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  .count-pill {
+    @apply rounded-full border border-white/10 bg-white/8 px-3 py-1.5 text-sm font-semibold text-white;
+  }
+
+  .score-grid {
+    @apply grid gap-3 sm:grid-cols-3;
+  }
+
+  .score-tile {
+    @apply rounded-[1.5rem] border border-white/10 bg-black/20 p-4;
+  }
+
+  .score-tile span {
+    @apply block text-[0.68rem] font-semibold uppercase tracking-[0.3em] text-white/52;
+  }
+
+  .score-tile strong {
+    @apply mt-3 block text-3xl font-black tracking-[-0.04em] text-white;
+  }
+
+  .arena-shell {
+    @apply relative flex min-h-[28rem] items-center justify-center overflow-hidden rounded-[2.2rem] border border-white/10 bg-black/30 px-5 py-8;
+    box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.35);
+  }
+
+  .arena-ring {
+    @apply absolute rounded-full border;
+  }
+
+  .arena-ring-outer {
+    width: min(36rem, 82vw);
+    height: min(36rem, 82vw);
+    border-color: rgba(168, 85, 247, 0.28);
+    border-style: dashed;
+    box-shadow: 0 0 80px rgba(168, 85, 247, 0.18);
+  }
+
+  .arena-ring-inner {
+    width: min(25rem, 58vw);
+    height: min(25rem, 58vw);
+    border-color: rgba(34, 211, 238, 0.26);
+    box-shadow: inset 0 0 60px rgba(34, 211, 238, 0.12), 0 0 50px rgba(34, 211, 238, 0.14);
+  }
+
+  .arena-core {
+    @apply relative z-10 flex min-h-[18rem] w-full max-w-xl flex-col items-center justify-center rounded-full border border-white/12 bg-[radial-gradient(circle,rgba(255,255,255,0.1),rgba(255,255,255,0.02)_45%,transparent_70%)] px-8 py-10 text-center;
+  }
+
+  .spotlight-chip {
+    @apply rounded-full border border-yellow-300/30 bg-yellow-300/10 px-4 py-2 text-[0.7rem] font-bold uppercase tracking-[0.34em] text-yellow-100;
+  }
+
+  .contestant-card {
+    @apply relative min-h-[14rem] overflow-hidden rounded-[1.8rem] border border-white/10 p-5;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      0 24px 60px rgba(0, 0, 0, 0.28);
+  }
+
+  .contestant-card-active {
+    border-color: rgba(249, 115, 22, 0.6);
+  }
+
+  .contestant-card__overlay {
+    @apply absolute inset-0;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.02));
+  }
+
+  .leader-row {
+    @apply flex items-center gap-4 rounded-[1.5rem] border border-white/10 bg-black/18 p-3.5;
+  }
+
+  .leader-rank {
+    @apply flex h-10 w-10 items-center justify-center rounded-full border border-white/12 bg-white/8 text-sm font-black text-white;
+  }
+
+  .list-card {
+    @apply flex flex-col gap-4 rounded-[1.5rem] border border-white/10 bg-black/18 p-4 sm:flex-row sm:items-center sm:justify-between;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  .list-card-active {
+    border-color: rgba(249, 115, 22, 0.55);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      0 0 0 1px rgba(249, 115, 22, 0.28),
+      0 0 30px rgba(249, 115, 22, 0.16);
+  }
+
+  .list-card-success {
+    border-color: rgba(52, 211, 153, 0.35);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      0 0 24px rgba(52, 211, 153, 0.12);
+  }
+
+  .assignment-card {
+    @apply flex flex-col gap-4 rounded-[1.6rem] border border-white/10 p-4;
+    background:
+      radial-gradient(circle at top left, rgba(250, 204, 21, 0.12), transparent 28%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
+  }
+
+  .assignment-winner {
+    @apply inline-flex w-fit items-center rounded-full border border-fuchsia-300/20 bg-fuchsia-300/10 px-4 py-2 text-sm font-semibold uppercase tracking-[0.2em] text-fuchsia-100;
+  }
+
+  .empty-state {
+    @apply flex min-h-28 items-center justify-center rounded-[1.5rem] border border-dashed border-white/12 bg-black/15 px-4 text-center text-sm text-white/58;
   }
 }
 
@@ -59,4 +231,62 @@
   width: min(1400px, 100%);
   margin: 0 auto;
   min-height: 100vh;
+}
+
+.aurora {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(70px);
+  opacity: 0.8;
+  animation: drift 20s ease-in-out infinite;
+}
+
+.aurora-a {
+  top: -6rem;
+  left: -5rem;
+  width: 22rem;
+  height: 22rem;
+  background: rgba(168, 85, 247, 0.24);
+}
+
+.aurora-b {
+  right: -7rem;
+  top: 7rem;
+  width: 24rem;
+  height: 24rem;
+  background: rgba(34, 211, 238, 0.2);
+  animation-delay: -6s;
+}
+
+.aurora-c {
+  left: 35%;
+  bottom: -10rem;
+  width: 28rem;
+  height: 28rem;
+  background: rgba(249, 115, 22, 0.18);
+  animation-delay: -10s;
+}
+
+.grid-haze {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.028) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: radial-gradient(circle at center, black, transparent 80%);
+  opacity: 0.2;
+}
+
+@keyframes drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  33% {
+    transform: translate3d(2rem, -1.5rem, 0) scale(1.04);
+  }
+  66% {
+    transform: translate3d(-1.5rem, 2rem, 0) scale(0.97);
+  }
 }

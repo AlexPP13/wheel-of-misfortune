@@ -1,3 +1,4 @@
+import { AnimatePresence, motion } from 'framer-motion'
 import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 
 type User = {
@@ -46,6 +47,16 @@ const defaultState: PersistedState = {
   historyCounts: Object.fromEntries(defaultUsers.map((user) => [user.id, 0])),
 }
 
+const panelMotion = {
+  hidden: { opacity: 0, y: 26, scale: 0.98 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1] as const },
+  },
+}
+
 function getStoredState(): PersistedState {
   const fallback = structuredClone(defaultState)
 
@@ -81,6 +92,18 @@ function chooseFairestUser(users: User[], counts: HistoryStats) {
   return candidates[randomIndex]
 }
 
+function getUserAura(index: number) {
+  const auras = [
+    'from-fuchsia-500/40 via-orange-400/25 to-yellow-300/20',
+    'from-cyan-400/35 via-blue-500/20 to-violet-500/25',
+    'from-emerald-400/35 via-lime-300/20 to-yellow-300/25',
+    'from-rose-500/35 via-pink-400/25 to-fuchsia-400/20',
+    'from-purple-500/35 via-indigo-400/20 to-sky-300/25',
+  ]
+
+  return auras[index % auras.length]
+}
+
 function App() {
   const initialStateRef = useRef<PersistedState | null>(null)
 
@@ -97,7 +120,7 @@ function App() {
   const [isSpinning, setIsSpinning] = useState(false)
   const [activeUserId, setActiveUserId] = useState<string | null>(null)
   const [currentChoreId, setCurrentChoreId] = useState<string | null>(null)
-  const [message, setMessage] = useState('Add users and chores, then let chaos assign the work fairly.')
+  const [message, setMessage] = useState('Summon the cast, feed the wheel, and unleash chore destiny.')
 
   useEffect(() => {
     const sanitizedCounts = users.reduce<HistoryStats>((acc, user) => {
@@ -135,6 +158,18 @@ function App() {
     return chores.filter((chore) => !assigned.has(chore.id))
   }, [assignments, chores])
 
+  const fairnessLeaders = useMemo(() => {
+    return [...users]
+      .sort((a, b) => (historyCounts[a.id] ?? 0) - (historyCounts[b.id] ?? 0))
+      .slice(0, 3)
+  }, [historyCounts, users])
+
+  const fairnessRank = useMemo(() => {
+    const ordered = [...users].sort((a, b) => (historyCounts[a.id] ?? 0) - (historyCounts[b.id] ?? 0))
+    return Object.fromEntries(ordered.map((user, index) => [user.id, index + 1]))
+  }, [historyCounts, users])
+
+  const assignedPercent = chores.length > 0 ? Math.round((assignments.length / chores.length) * 100) : 0
   const canSpin = users.length > 0 && chores.length > 0 && !isSpinning
 
   const addUser = (event: FormEvent<HTMLFormElement>) => {
@@ -184,28 +219,29 @@ function App() {
 
   const runSpin = async () => {
     if (users.length === 0) {
-      setMessage('You need at least one user before fate can strike.')
+      setMessage('No contestants. Add at least one mortal before the spectacle begins.')
       return
     }
 
     if (remainingChores.length === 0) {
-      setMessage('Every chore is already delegated. Reset the round to spin again.')
+      setMessage('Every chore already has an unfortunate champion. Reset the round for encore chaos.')
       return
     }
 
     setIsSpinning(true)
-    setMessage('The wheel is wobbling toward justice...')
+    setMessage('⚡ The arena awakens. Lights flash. Fate starts screaming...')
 
     let nextCounts = { ...historyCounts }
     const producedAssignments: Assignment[] = []
 
     for (const chore of remainingChores) {
       setCurrentChoreId(chore.id)
+      setMessage(`🎯 ${chore.name} enters the thunder dome. Choose wisely, cruel machine.`)
 
-      for (let tick = 0; tick < 10; tick += 1) {
+      for (let tick = 0; tick < 12; tick += 1) {
         const highlighted = users[tick % users.length]
         setActiveUserId(highlighted.id)
-        await new Promise((resolve) => window.setTimeout(resolve, 90 + tick * 18))
+        await new Promise((resolve) => window.setTimeout(resolve, 85 + tick * 16))
       }
 
       const chosenUser = chooseFairestUser(users, nextCounts)
@@ -220,16 +256,16 @@ function App() {
 
       setAssignments((current) => [...current, nextAssignment])
       setHistoryCounts(nextCounts)
-      setMessage(`${chosenUser.name} has been chosen for ${chore.name}.`)
+      setMessage(`🔥 ${chosenUser.name} has been dramatically volunteered for ${chore.name}.`)
 
-      await new Promise((resolve) => window.setTimeout(resolve, 550))
+      await new Promise((resolve) => window.setTimeout(resolve, 650))
     }
 
     setCurrentChoreId(null)
     setIsSpinning(false)
     setMessage(
       producedAssignments.length > 0
-        ? 'Every chore has been delegated exactly once. The wheel is pleased.'
+        ? '👑 The wheel has spoken. Every chore has found its doomed star.'
         : 'Nothing left to assign this round.',
     )
   }
@@ -239,7 +275,7 @@ function App() {
     setCurrentChoreId(null)
     setActiveUserId(null)
     setIsSpinning(false)
-    setMessage('Round cleared. Historical fairness is still remembered.')
+    setMessage('Round wiped clean. The crowd demands another overproduced catastrophe.')
   }
 
   const resetEverything = () => {
@@ -263,247 +299,464 @@ function App() {
     setCurrentChoreId(null)
     setActiveUserId(null)
     setIsSpinning(false)
-    setMessage('Everything has been reset. Fresh chaos awaits.')
+    setMessage('Everything has been reset. New victims. New chores. Same glorious chaos.')
   }
 
   const currentChoreName = currentChoreId
     ? chores.find((chore) => chore.id === currentChoreId)?.name ?? 'Finding victim…'
     : remainingChores[0]?.name ?? 'All chores assigned'
 
+  const activeUser = activeUserId ? users.find((user) => user.id === activeUserId) ?? null : null
+
   return (
-    <main className="flex flex-col gap-6 px-4 py-4 sm:px-6 lg:px-8 lg:py-8">
-      <section className="glass-panel flex flex-col gap-6 p-6 lg:flex-row lg:items-start lg:justify-between lg:p-8">
-        <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-purple-400">
-            Wheel of (Un)Fortune
-          </p>
-          <h1 className="text-4xl font-semibold tracking-tight text-slate-50 sm:text-5xl">
-            Spin the wheel, spread the suffering fairly.
-          </h1>
-          <p className="mt-4 max-w-3xl text-base text-slate-300 sm:text-lg">
-            Add your people, list the chores, and let the app assign every task exactly once.
-            Across multiple rounds, local history keeps the workload balanced.
-          </p>
-        </div>
+    <main className="relative isolate overflow-hidden px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <div className="pointer-events-none absolute inset-0 -z-20 overflow-hidden">
+        <div className="aurora aurora-a" />
+        <div className="aurora aurora-b" />
+        <div className="aurora aurora-c" />
+        <div className="grid-haze" />
+      </div>
 
-        <div className="flex flex-wrap justify-end gap-3">
-          <button
-            className="pill-button bg-gradient-to-br from-orange-500 to-purple-400 text-white"
-            onClick={runSpin}
-            disabled={!canSpin}
-          >
-            {isSpinning ? 'Spinning…' : remainingChores.length === 0 ? 'All tasks assigned' : 'Spin the wheel'}
-          </button>
-          <button
-            className="pill-button bg-slate-400/15 text-slate-50"
-            onClick={resetRound}
-            disabled={isSpinning}
-          >
-            Reset round
-          </button>
-          <button
-            className="pill-button bg-red-500/15 text-red-200"
-            onClick={resetEverything}
-            disabled={isSpinning}
-          >
-            Reset everything
-          </button>
-        </div>
-      </section>
+      <motion.section
+        className="hero-panel mb-6 overflow-hidden p-6 sm:p-8 xl:p-10"
+        initial="hidden"
+        animate="visible"
+        variants={panelMotion}
+      >
+        <div className="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent opacity-80" />
+        <div className="relative z-10 grid gap-8 xl:grid-cols-[1.5fr_0.9fr] xl:items-center">
+          <div>
+            <motion.p
+              className="mb-3 inline-flex rounded-full border border-white/15 bg-white/8 px-4 py-1.5 text-[0.7rem] font-bold uppercase tracking-[0.42em] text-fuchsia-100 shadow-[0_0_40px_rgba(255,255,255,0.12)]"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1, duration: 0.5 }}
+            >
+              Wheel of (Un)Fortune · Deluxe Meltdown Edition
+            </motion.p>
 
-      <section className="glass-panel grid gap-5 p-5 md:grid-cols-3 md:items-center md:px-6">
-        <div>
-          <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-purple-400">
-            Current chore
-          </span>
-          <strong className="block text-slate-50">{currentChoreName}</strong>
+            <motion.h1
+              className="max-w-4xl text-5xl font-black uppercase leading-[0.92] tracking-[-0.04em] text-white sm:text-6xl xl:text-7xl"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15, duration: 0.7 }}
+            >
+              More thunder.
+              <br />
+              More neon.
+              <br />
+              More chore-fueled drama.
+            </motion.h1>
+
+            <motion.p
+              className="mt-5 max-w-2xl text-base text-white/78 sm:text-lg"
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.22, duration: 0.65 }}
+            >
+              This is no longer a polite productivity app. It is a glowing arena of assignment fate,
+              where every spin feels like a season finale and every chore lands with theatrical excess.
+            </motion.p>
+
+            <motion.div
+              className="mt-8 flex flex-wrap gap-3"
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.55 }}
+            >
+              <button className="dramatic-button dramatic-button-primary" onClick={runSpin} disabled={!canSpin}>
+                {isSpinning ? 'Spinning the apocalypse…' : remainingChores.length === 0 ? 'All chores assigned' : 'Unleash the wheel'}
+              </button>
+              <button className="dramatic-button dramatic-button-muted" onClick={resetRound} disabled={isSpinning}>
+                Reset round
+              </button>
+              <button className="dramatic-button dramatic-button-danger" onClick={resetEverything} disabled={isSpinning}>
+                Reset everything
+              </button>
+            </motion.div>
+          </div>
+
+          <motion.div
+            className="relative min-h-[20rem] rounded-[2rem] border border-white/10 bg-black/20 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.15),0_30px_120px_rgba(0,0,0,0.45)]"
+            initial={{ opacity: 0, scale: 0.96, rotate: -1.5 }}
+            animate={{ opacity: 1, scale: 1, rotate: 0 }}
+            transition={{ delay: 0.12, duration: 0.7 }}
+          >
+            <div className="absolute inset-0 rounded-[2rem] bg-[radial-gradient(circle_at_top,rgba(250,204,21,0.3),transparent_28%),radial-gradient(circle_at_80%_20%,rgba(168,85,247,0.32),transparent_35%),linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))]" />
+            <div className="relative z-10 flex h-full flex-col justify-between gap-5">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-white/55">Showtime status</p>
+                  <h2 className="mt-1 text-2xl font-bold text-white">Chaos command board</h2>
+                </div>
+                <motion.div
+                  className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white"
+                  animate={isSpinning ? { scale: [1, 1.06, 1], opacity: [0.8, 1, 0.8] } : { scale: 1, opacity: 1 }}
+                  transition={{ duration: 1.2, repeat: isSpinning ? Infinity : 0 }}
+                >
+                  {isSpinning ? 'LIVE' : 'ARMED'}
+                </motion.div>
+              </div>
+
+              <div className="score-grid">
+                <div className="score-tile">
+                  <span>Total crew</span>
+                  <strong>{users.length}</strong>
+                </div>
+                <div className="score-tile">
+                  <span>Chores on deck</span>
+                  <strong>{remainingChores.length}</strong>
+                </div>
+                <div className="score-tile">
+                  <span>Assigned this round</span>
+                  <strong>{assignments.length}</strong>
+                </div>
+              </div>
+
+              <div className="rounded-[1.75rem] border border-white/10 bg-black/25 p-4 backdrop-blur-sm">
+                <div className="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-[0.3em] text-white/55">
+                  <span>Round pressure</span>
+                  <span>{assignedPercent}%</span>
+                </div>
+                <div className="h-3 overflow-hidden rounded-full bg-white/8">
+                  <motion.div
+                    className="h-full rounded-full bg-[linear-gradient(90deg,#f97316_0%,#fb7185_28%,#a855f7_62%,#22d3ee_100%)] shadow-[0_0_30px_rgba(249,115,22,0.45)]"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${assignedPercent}%` }}
+                    transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+                  />
+                </div>
+                <p className="mt-3 text-sm text-white/72">{message}</p>
+              </div>
+            </div>
+          </motion.div>
         </div>
-        <div>
-          <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-purple-400">
-            Round progress
-          </span>
-          <strong className="block text-slate-50">
-            {assignments.length} / {chores.length} chores delegated
-          </strong>
-        </div>
-        <p className="self-end text-slate-200">{message}</p>
+      </motion.section>
+
+      <section className="mb-6 grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
+        <motion.div className="stage-panel overflow-hidden p-5 sm:p-6" initial="hidden" animate="visible" variants={panelMotion}>
+          <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-fuchsia-200/65">Main event</p>
+              <h2 className="mt-2 text-3xl font-black uppercase tracking-[-0.03em] text-white sm:text-4xl">The doom dome</h2>
+            </div>
+            <div className="rounded-full border border-white/12 bg-white/8 px-4 py-2 text-sm font-semibold text-white/86">
+              Current chore: <span className="text-yellow-200">{currentChoreName}</span>
+            </div>
+          </div>
+
+          <div className="arena-shell">
+            <motion.div
+              className="arena-ring arena-ring-outer"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 24, repeat: Infinity, ease: 'linear' }}
+            />
+            <motion.div
+              className="arena-ring arena-ring-inner"
+              animate={{ rotate: -360 }}
+              transition={{ duration: 16, repeat: Infinity, ease: 'linear' }}
+            />
+
+            <div className="arena-core">
+              <motion.div
+                className="spotlight-chip"
+                animate={isSpinning ? { scale: [1, 1.08, 1], opacity: [0.75, 1, 0.75] } : { scale: 1, opacity: 1 }}
+                transition={{ duration: 0.95, repeat: isSpinning ? Infinity : 0 }}
+              >
+                {isSpinning ? 'SCANNING FOR A VOLUNTEER' : 'READY FOR IMPACT'}
+              </motion.div>
+
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={`${currentChoreName}-${activeUser?.id ?? 'idle'}`}
+                  className="text-center"
+                  initial={{ opacity: 0, y: 18, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -18, scale: 0.95 }}
+                  transition={{ duration: 0.35 }}
+                >
+                  <p className="text-xs font-semibold uppercase tracking-[0.4em] text-white/45">Now threatening</p>
+                  <h3 className="mt-4 text-4xl font-black uppercase tracking-[-0.04em] text-white sm:text-5xl">
+                    {currentChoreName}
+                  </h3>
+                  <p className="mt-4 text-sm text-white/72 sm:text-base">
+                    {activeUser
+                      ? `${activeUser.name} is currently in the spotlight.`
+                      : 'Spin the machine and let the lasers decide.'}
+                  </p>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <AnimatePresence>
+              {users.length > 0 ? (
+                users.map((user, index) => {
+                  const isActive = activeUserId === user.id
+                  const choresTaken = historyCounts[user.id] ?? 0
+
+                  return (
+                    <motion.article
+                      key={user.id}
+                      className={[
+                        'contestant-card',
+                        isActive ? 'contestant-card-active' : '',
+                        `bg-gradient-to-br ${getUserAura(index)}`,
+                      ]
+                        .filter(Boolean)
+                        .join(' ')}
+                      layout
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={
+                        isActive
+                          ? {
+                            opacity: 1,
+                            y: 0,
+                            scale: [1, 1.04, 1.01],
+                            boxShadow: [
+                              '0 0 0 rgba(255,255,255,0)',
+                              '0 0 50px rgba(249,115,22,0.35)',
+                              '0 0 26px rgba(168,85,247,0.28)',
+                            ],
+                          }
+                          : { opacity: 1, y: 0, scale: 1 }
+                      }
+                      transition={{ duration: 0.45 }}
+                    >
+                      <div className="contestant-card__overlay" />
+                      <div className="relative z-10 flex h-full flex-col justify-between gap-5">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.35em] text-white/60">
+                              Contestant {String(index + 1).padStart(2, '0')}
+                            </p>
+                            <h3 className="mt-3 text-2xl font-black uppercase tracking-[-0.03em] text-white">
+                              {user.name}
+                            </h3>
+                          </div>
+                          <motion.span
+                            className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-white/90"
+                            animate={isActive ? { y: [-1, -6, -1] } : { y: 0 }}
+                            transition={{ duration: 0.8, repeat: isActive ? Infinity : 0 }}
+                          >
+                            {isActive ? 'Chosen?' : 'Waiting'}
+                          </motion.span>
+                        </div>
+
+                        <div className="space-y-2 text-sm text-white/82">
+                          <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-black/18 px-3 py-2">
+                            <span>Total chores survived</span>
+                            <strong className="text-white">{choresTaken}</strong>
+                          </div>
+                          <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-black/18 px-3 py-2">
+                            <span>Fairness rank</span>
+                            <strong className="text-white">#{fairnessRank[user.id] ?? users.length}</strong>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.article>
+                  )
+                })
+              ) : (
+                <motion.div className="empty-state md:col-span-2 xl:col-span-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                  Add a user and the arena will conjure contender cards.
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </motion.div>
+
+        <motion.aside className="glass-panel p-5 sm:p-6" initial="hidden" animate="visible" variants={panelMotion}>
+          <div className="mb-5 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-cyan-200/60">Fairness radar</p>
+              <h2 className="mt-2 text-2xl font-black uppercase tracking-[-0.03em] text-white">Least doomed</h2>
+            </div>
+            <div className="rounded-full border border-cyan-300/18 bg-cyan-300/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-cyan-100">
+              Balanced chaos
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {fairnessLeaders.length > 0 ? (
+              fairnessLeaders.map((user, index) => (
+                <motion.div
+                  key={user.id}
+                  className="leader-row"
+                  initial={{ opacity: 0, x: 16 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.08 }}
+                >
+                  <div className="leader-rank">{index + 1}</div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-base font-semibold text-white">{user.name}</p>
+                    <p className="text-sm text-white/58">{historyCounts[user.id] ?? 0} chores across all rounds</p>
+                  </div>
+                </motion.div>
+              ))
+            ) : (
+              <div className="empty-state">Nobody on the board yet.</div>
+            )}
+          </div>
+
+          <div className="mt-6 rounded-[1.75rem] border border-white/10 bg-white/6 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/52">Production notes</p>
+            <ul className="mt-4 space-y-3 text-sm text-white/75">
+              <li>• Every chore is assigned exactly once per round.</li>
+              <li>• Historical counts still keep the pain distributed fairly.</li>
+              <li>• The presentation is outrageous. The logic remains disciplined.</li>
+            </ul>
+          </div>
+        </motion.aside>
       </section>
 
       <section className="grid gap-6 xl:grid-cols-3">
-        <div className="glass-panel p-6">
+        <motion.div className="glass-panel p-6" initial="hidden" animate="visible" variants={panelMotion}>
           <div className="mb-5 flex items-center justify-between">
             <div>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-purple-400">Crew</p>
-              <h2 className="text-2xl font-semibold text-slate-50">Users</h2>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-fuchsia-200/65">Roster control</p>
+              <h2 className="mt-2 text-2xl font-black uppercase tracking-[-0.03em] text-white">Users</h2>
             </div>
-            <span className="rounded-full bg-purple-400/15 px-3 py-1.5 text-sm font-medium text-purple-200">
-              {users.length}
-            </span>
+            <span className="count-pill">{users.length}</span>
           </div>
 
           <form className="mb-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]" onSubmit={addUser}>
             <input
-              className="rounded-2xl border border-slate-400/20 bg-slate-900/40 px-4 py-3 text-slate-50 outline-none transition focus:border-purple-400/60"
+              className="dramatic-input"
               value={userName}
               onChange={(event) => setUserName(event.target.value)}
-              placeholder="Add a user"
+              placeholder="Add a contestant"
               aria-label="User name"
             />
-            <button type="submit" className="pill-button bg-emerald-500/20 text-emerald-200">
+            <button type="submit" className="dramatic-button dramatic-button-emerald">
               Add
             </button>
           </form>
 
-          <ul className="flex list-none flex-col gap-3 p-0">
-            {users.map((user) => (
-              <li
-                key={user.id}
-                className={[
-                  'flex flex-col gap-4 rounded-2xl border border-slate-400/15 bg-slate-800/70 p-4 sm:flex-row sm:items-center sm:justify-between',
-                  activeUserId === user.id ? 'border-orange-400/70 shadow-[0_0_0_1px_rgba(249,115,22,0.4)]' : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-              >
-                <div>
-                  <strong className="text-slate-50">{user.name}</strong>
-                  <span className="mt-1 block text-sm text-slate-300">
-                    {historyCounts[user.id] ?? 0} total chores across all spins
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  className="pill-button bg-red-500/15 text-red-200"
-                  onClick={() => removeUser(user.id)}
-                  disabled={isSpinning}
-                >
-                  Remove
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="glass-panel p-6">
-          <div className="mb-5 flex items-center justify-between">
-            <div>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-purple-400">Work</p>
-              <h2 className="text-2xl font-semibold text-slate-50">Chores</h2>
-            </div>
-            <span className="rounded-full bg-purple-400/15 px-3 py-1.5 text-sm font-medium text-purple-200">
-              {chores.length}
-            </span>
-          </div>
-
-          <form className="mb-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]" onSubmit={addChore}>
-            <input
-              className="rounded-2xl border border-slate-400/20 bg-slate-900/40 px-4 py-3 text-slate-50 outline-none transition focus:border-purple-400/60"
-              value={choreName}
-              onChange={(event) => setChoreName(event.target.value)}
-              placeholder="Add a chore"
-              aria-label="Chore name"
-            />
-            <button type="submit" className="pill-button bg-emerald-500/20 text-emerald-200">
-              Add
-            </button>
-          </form>
-
-          <ul className="flex list-none flex-col gap-3 p-0">
-            {chores.map((chore) => {
-              const isAssigned = assignments.some((assignment) => assignment.choreId === chore.id)
-
-              return (
-                <li
-                  key={chore.id}
-                  className={[
-                    'flex flex-col gap-4 rounded-2xl border border-slate-400/15 bg-slate-800/70 p-4 sm:flex-row sm:items-center sm:justify-between',
-                    isAssigned ? 'border-emerald-500/35' : '',
-                  ]
-                    .filter(Boolean)
-                    .join(' ')}
+          <div className="space-y-3">
+            <AnimatePresence>
+              {users.map((user) => (
+                <motion.div
+                  key={user.id}
+                  className={['list-card', activeUserId === user.id ? 'list-card-active' : ''].filter(Boolean).join(' ')}
+                  layout
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -12 }}
                 >
                   <div>
-                    <strong className="text-slate-50">{chore.name}</strong>
-                    <span className="mt-1 block text-sm text-slate-300">
-                      {isAssigned ? 'Assigned this round' : 'Waiting for doom'}
+                    <strong className="text-white">{user.name}</strong>
+                    <span className="mt-1 block text-sm text-white/62">
+                      {historyCounts[user.id] ?? 0} total chores across all spins
                     </span>
                   </div>
                   <button
                     type="button"
-                    className="pill-button bg-red-500/15 text-red-200"
-                    onClick={() => removeChore(chore.id)}
+                    className="dramatic-button dramatic-button-danger dramatic-button-small"
+                    onClick={() => removeUser(user.id)}
                     disabled={isSpinning}
                   >
                     Remove
                   </button>
-                </li>
-              )
-            })}
-          </ul>
-        </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        </motion.div>
 
-        <div className="glass-panel flex flex-col gap-5 p-6">
-          <div className="flex items-center justify-between">
+        <motion.div className="glass-panel p-6" initial="hidden" animate="visible" variants={panelMotion}>
+          <div className="mb-5 flex items-center justify-between">
             <div>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-purple-400">Wheel</p>
-              <h2 className="text-2xl font-semibold text-slate-50">Delegation board</h2>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-orange-200/65">Threat queue</p>
+              <h2 className="mt-2 text-2xl font-black uppercase tracking-[-0.03em] text-white">Chores</h2>
             </div>
-            <span className="rounded-full bg-purple-400/15 px-3 py-1.5 text-sm font-medium text-purple-200">
-              {assignmentRows.length}
-            </span>
+            <span className="count-pill">{chores.length}</span>
           </div>
 
-          <div className="rounded-3xl border border-slate-400/15 bg-[radial-gradient(circle_at_top,rgba(192,132,252,0.24),transparent_55%),rgba(15,23,42,0.5)] p-5">
-            <div className="grid min-h-60 gap-3 sm:grid-cols-2">
-              {users.length > 0 ? (
-                users.map((user) => (
-                  <div
-                    key={user.id}
-                    className="contents"
+          <form className="mb-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]" onSubmit={addChore}>
+            <input
+              className="dramatic-input"
+              value={choreName}
+              onChange={(event) => setChoreName(event.target.value)}
+              placeholder="Add a catastrophe"
+              aria-label="Chore name"
+            />
+            <button type="submit" className="dramatic-button dramatic-button-emerald">
+              Add
+            </button>
+          </form>
+
+          <div className="space-y-3">
+            <AnimatePresence>
+              {chores.map((chore) => {
+                const isAssigned = assignments.some((assignment) => assignment.choreId === chore.id)
+
+                return (
+                  <motion.div
+                    key={chore.id}
+                    className={['list-card', isAssigned ? 'list-card-success' : ''].filter(Boolean).join(' ')}
+                    layout
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -12 }}
                   >
-                    <span
-                      className={[
-                        'flex min-h-[5.5rem] items-center justify-center rounded-3xl border border-transparent bg-slate-700/70 px-4 text-center text-slate-200 transition duration-200',
-                        activeUserId === user.id
-                          ? 'scale-[1.02] border-orange-400/85 bg-gradient-to-br from-orange-500/30 to-purple-400/30'
-                          : '',
-                      ]
-                        .filter(Boolean)
-                        .join(' ')}
+                    <div>
+                      <strong className="text-white">{chore.name}</strong>
+                      <span className="mt-1 block text-sm text-white/62">
+                        {isAssigned ? 'Assigned this round' : 'Waiting in the blast radius'}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className="dramatic-button dramatic-button-danger dramatic-button-small"
+                      onClick={() => removeChore(chore.id)}
+                      disabled={isSpinning}
                     >
-                      {user.name}
-                    </span>
-                  </div>
-                ))
-              ) : (
-                <div className="flex min-h-[5.5rem] items-center justify-center rounded-3xl bg-slate-700/70 px-4 text-center text-slate-300 sm:col-span-2">
-                  Add a user to build the wheel.
-                </div>
-              )}
+                      Remove
+                    </button>
+                  </motion.div>
+                )
+              })}
+            </AnimatePresence>
+          </div>
+        </motion.div>
+
+        <motion.div className="glass-panel p-6" initial="hidden" animate="visible" variants={panelMotion}>
+          <div className="mb-5 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-yellow-200/65">Aftermath</p>
+              <h2 className="mt-2 text-2xl font-black uppercase tracking-[-0.03em] text-white">This round</h2>
             </div>
+            <span className="count-pill">{assignmentRows.length}</span>
           </div>
 
-          <div className="flex flex-col gap-3">
-            <h3 className="text-xl font-semibold text-slate-50">This round</h3>
-            <ul className="flex list-none flex-col gap-3 p-0">
+          <div className="space-y-3">
+            <AnimatePresence>
               {assignmentRows.length > 0 ? (
-                assignmentRows.map((assignment) => (
-                  <li
+                assignmentRows.map((assignment, index) => (
+                  <motion.div
                     key={assignment.choreId}
-                    className="flex flex-col gap-2 rounded-2xl border border-slate-400/15 bg-slate-800/70 p-4 sm:flex-row sm:items-center sm:justify-between"
+                    className="assignment-card"
+                    initial={{ opacity: 0, scale: 0.96, y: 14 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
                   >
-                    <span className="text-slate-300">{assignment.choreName}</span>
-                    <strong className="text-slate-50">{assignment.userName}</strong>
-                  </li>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/44">Assigned doom</p>
+                      <strong className="mt-2 block text-lg text-white">{assignment.choreName}</strong>
+                    </div>
+                    <div className="assignment-winner">{assignment.userName}</div>
+                  </motion.div>
                 ))
               ) : (
-                <li className="flex justify-center rounded-2xl border border-slate-400/15 bg-slate-800/70 p-4 text-slate-400">
-                  No assignments yet. Spin when ready.
-                </li>
+                <motion.div className="empty-state" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                  No assignments yet. Press the big dramatic button.
+                </motion.div>
               )}
-            </ul>
+            </AnimatePresence>
           </div>
-        </div>
+        </motion.div>
       </section>
     </main>
   )
