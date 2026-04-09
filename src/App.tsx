@@ -1,5 +1,4 @@
 import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
-import './App.css'
 
 type User = {
   id: string
@@ -267,80 +266,117 @@ function App() {
     setMessage('Everything has been reset. Fresh chaos awaits.')
   }
 
+  const currentChoreName = currentChoreId
+    ? chores.find((chore) => chore.id === currentChoreId)?.name ?? 'Finding victim…'
+    : remainingChores[0]?.name ?? 'All chores assigned'
+
   return (
-    <main className="app-shell">
-      <section className="hero-card">
+    <main className="flex flex-col gap-6 px-4 py-4 sm:px-6 lg:px-8 lg:py-8">
+      <section className="glass-panel flex flex-col gap-6 p-6 lg:flex-row lg:items-start lg:justify-between lg:p-8">
         <div>
-          <p className="eyebrow">Wheel of (Un)Fortune</p>
-          <h1>Spin the wheel, spread the suffering fairly.</h1>
-          <p className="hero-copy">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-purple-400">
+            Wheel of (Un)Fortune
+          </p>
+          <h1 className="text-4xl font-semibold tracking-tight text-slate-50 sm:text-5xl">
+            Spin the wheel, spread the suffering fairly.
+          </h1>
+          <p className="mt-4 max-w-3xl text-base text-slate-300 sm:text-lg">
             Add your people, list the chores, and let the app assign every task exactly once.
             Across multiple rounds, local history keeps the workload balanced.
           </p>
         </div>
 
-        <div className="hero-actions">
-          <button className="primary-button" onClick={runSpin} disabled={!canSpin}>
+        <div className="flex flex-wrap justify-end gap-3">
+          <button
+            className="pill-button bg-gradient-to-br from-orange-500 to-purple-400 text-white"
+            onClick={runSpin}
+            disabled={!canSpin}
+          >
             {isSpinning ? 'Spinning…' : remainingChores.length === 0 ? 'All tasks assigned' : 'Spin the wheel'}
           </button>
-          <button className="secondary-button" onClick={resetRound} disabled={isSpinning}>
+          <button
+            className="pill-button bg-slate-400/15 text-slate-50"
+            onClick={resetRound}
+            disabled={isSpinning}
+          >
             Reset round
           </button>
-          <button className="ghost-button" onClick={resetEverything} disabled={isSpinning}>
+          <button
+            className="pill-button bg-red-500/15 text-red-200"
+            onClick={resetEverything}
+            disabled={isSpinning}
+          >
             Reset everything
           </button>
         </div>
       </section>
 
-      <section className="status-bar">
+      <section className="glass-panel grid gap-5 p-5 md:grid-cols-3 md:items-center md:px-6">
         <div>
-          <span className="status-label">Current chore</span>
-          <strong>
-            {currentChoreId
-              ? chores.find((chore) => chore.id === currentChoreId)?.name ?? 'Finding victim…'
-              : remainingChores[0]?.name ?? 'All chores assigned'}
-          </strong>
+          <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-purple-400">
+            Current chore
+          </span>
+          <strong className="block text-slate-50">{currentChoreName}</strong>
         </div>
         <div>
-          <span className="status-label">Round progress</span>
-          <strong>
+          <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-purple-400">
+            Round progress
+          </span>
+          <strong className="block text-slate-50">
             {assignments.length} / {chores.length} chores delegated
           </strong>
         </div>
-        <p className="status-message">{message}</p>
+        <p className="self-end text-slate-200">{message}</p>
       </section>
 
-      <section className="dashboard-grid">
-        <div className="panel">
-          <div className="panel-header">
+      <section className="grid gap-6 xl:grid-cols-3">
+        <div className="glass-panel p-6">
+          <div className="mb-5 flex items-center justify-between">
             <div>
-              <p className="panel-kicker">Crew</p>
-              <h2>Users</h2>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-purple-400">Crew</p>
+              <h2 className="text-2xl font-semibold text-slate-50">Users</h2>
             </div>
-            <span className="pill">{users.length}</span>
+            <span className="rounded-full bg-purple-400/15 px-3 py-1.5 text-sm font-medium text-purple-200">
+              {users.length}
+            </span>
           </div>
 
-          <form className="entry-form" onSubmit={addUser}>
+          <form className="mb-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]" onSubmit={addUser}>
             <input
+              className="rounded-2xl border border-slate-400/20 bg-slate-900/40 px-4 py-3 text-slate-50 outline-none transition focus:border-purple-400/60"
               value={userName}
               onChange={(event) => setUserName(event.target.value)}
               placeholder="Add a user"
               aria-label="User name"
             />
-            <button type="submit">Add</button>
+            <button type="submit" className="pill-button bg-emerald-500/20 text-emerald-200">
+              Add
+            </button>
           </form>
 
-          <ul className="item-list">
+          <ul className="flex list-none flex-col gap-3 p-0">
             {users.map((user) => (
               <li
                 key={user.id}
-                className={['item-card', activeUserId === user.id ? 'active' : ''].filter(Boolean).join(' ')}
+                className={[
+                  'flex flex-col gap-4 rounded-2xl border border-slate-400/15 bg-slate-800/70 p-4 sm:flex-row sm:items-center sm:justify-between',
+                  activeUserId === user.id ? 'border-orange-400/70 shadow-[0_0_0_1px_rgba(249,115,22,0.4)]' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
               >
                 <div>
-                  <strong>{user.name}</strong>
-                  <span>{historyCounts[user.id] ?? 0} total chores across all spins</span>
+                  <strong className="text-slate-50">{user.name}</strong>
+                  <span className="mt-1 block text-sm text-slate-300">
+                    {historyCounts[user.id] ?? 0} total chores across all spins
+                  </span>
                 </div>
-                <button type="button" onClick={() => removeUser(user.id)} disabled={isSpinning}>
+                <button
+                  type="button"
+                  className="pill-button bg-red-500/15 text-red-200"
+                  onClick={() => removeUser(user.id)}
+                  disabled={isSpinning}
+                >
                   Remove
                 </button>
               </li>
@@ -348,36 +384,56 @@ function App() {
           </ul>
         </div>
 
-        <div className="panel">
-          <div className="panel-header">
+        <div className="glass-panel p-6">
+          <div className="mb-5 flex items-center justify-between">
             <div>
-              <p className="panel-kicker">Work</p>
-              <h2>Chores</h2>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-purple-400">Work</p>
+              <h2 className="text-2xl font-semibold text-slate-50">Chores</h2>
             </div>
-            <span className="pill">{chores.length}</span>
+            <span className="rounded-full bg-purple-400/15 px-3 py-1.5 text-sm font-medium text-purple-200">
+              {chores.length}
+            </span>
           </div>
 
-          <form className="entry-form" onSubmit={addChore}>
+          <form className="mb-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]" onSubmit={addChore}>
             <input
+              className="rounded-2xl border border-slate-400/20 bg-slate-900/40 px-4 py-3 text-slate-50 outline-none transition focus:border-purple-400/60"
               value={choreName}
               onChange={(event) => setChoreName(event.target.value)}
               placeholder="Add a chore"
               aria-label="Chore name"
             />
-            <button type="submit">Add</button>
+            <button type="submit" className="pill-button bg-emerald-500/20 text-emerald-200">
+              Add
+            </button>
           </form>
 
-          <ul className="item-list">
+          <ul className="flex list-none flex-col gap-3 p-0">
             {chores.map((chore) => {
               const isAssigned = assignments.some((assignment) => assignment.choreId === chore.id)
 
               return (
-                <li key={chore.id} className={['item-card', isAssigned ? 'assigned' : ''].filter(Boolean).join(' ')}>
+                <li
+                  key={chore.id}
+                  className={[
+                    'flex flex-col gap-4 rounded-2xl border border-slate-400/15 bg-slate-800/70 p-4 sm:flex-row sm:items-center sm:justify-between',
+                    isAssigned ? 'border-emerald-500/35' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                >
                   <div>
-                    <strong>{chore.name}</strong>
-                    <span>{isAssigned ? 'Assigned this round' : 'Waiting for doom'}</span>
+                    <strong className="text-slate-50">{chore.name}</strong>
+                    <span className="mt-1 block text-sm text-slate-300">
+                      {isAssigned ? 'Assigned this round' : 'Waiting for doom'}
+                    </span>
                   </div>
-                  <button type="button" onClick={() => removeChore(chore.id)} disabled={isSpinning}>
+                  <button
+                    type="button"
+                    className="pill-button bg-red-500/15 text-red-200"
+                    onClick={() => removeChore(chore.id)}
+                    disabled={isSpinning}
+                  >
                     Remove
                   </button>
                 </li>
@@ -386,46 +442,64 @@ function App() {
           </ul>
         </div>
 
-        <div className="panel results-panel">
-          <div className="panel-header">
+        <div className="glass-panel flex flex-col gap-5 p-6">
+          <div className="flex items-center justify-between">
             <div>
-              <p className="panel-kicker">Wheel</p>
-              <h2>Delegation board</h2>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-purple-400">Wheel</p>
+              <h2 className="text-2xl font-semibold text-slate-50">Delegation board</h2>
             </div>
-            <span className="pill">{assignmentRows.length}</span>
+            <span className="rounded-full bg-purple-400/15 px-3 py-1.5 text-sm font-medium text-purple-200">
+              {assignmentRows.length}
+            </span>
           </div>
 
-          <div className="wheel-card">
-            <div className="wheel-ring">
+          <div className="rounded-3xl border border-slate-400/15 bg-[radial-gradient(circle_at_top,rgba(192,132,252,0.24),transparent_55%),rgba(15,23,42,0.5)] p-5">
+            <div className="grid min-h-60 gap-3 sm:grid-cols-2">
               {users.length > 0 ? (
                 users.map((user) => (
                   <div
                     key={user.id}
-                    className={['wheel-slot', activeUserId === user.id ? 'selected' : '']
-                      .filter(Boolean)
-                      .join(' ')}
+                    className="contents"
                   >
-                    {user.name}
+                    <span
+                      className={[
+                        'flex min-h-[5.5rem] items-center justify-center rounded-3xl border border-transparent bg-slate-700/70 px-4 text-center text-slate-200 transition duration-200',
+                        activeUserId === user.id
+                          ? 'scale-[1.02] border-orange-400/85 bg-gradient-to-br from-orange-500/30 to-purple-400/30'
+                          : '',
+                      ]
+                        .filter(Boolean)
+                        .join(' ')}
+                    >
+                      {user.name}
+                    </span>
                   </div>
                 ))
               ) : (
-                <div className="wheel-empty">Add a user to build the wheel.</div>
+                <div className="flex min-h-[5.5rem] items-center justify-center rounded-3xl bg-slate-700/70 px-4 text-center text-slate-300 sm:col-span-2">
+                  Add a user to build the wheel.
+                </div>
               )}
             </div>
           </div>
 
-          <div className="results-section">
-            <h3>This round</h3>
-            <ul className="results-list">
+          <div className="flex flex-col gap-3">
+            <h3 className="text-xl font-semibold text-slate-50">This round</h3>
+            <ul className="flex list-none flex-col gap-3 p-0">
               {assignmentRows.length > 0 ? (
                 assignmentRows.map((assignment) => (
-                  <li key={assignment.choreId}>
-                    <span>{assignment.choreName}</span>
-                    <strong>{assignment.userName}</strong>
+                  <li
+                    key={assignment.choreId}
+                    className="flex flex-col gap-2 rounded-2xl border border-slate-400/15 bg-slate-800/70 p-4 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <span className="text-slate-300">{assignment.choreName}</span>
+                    <strong className="text-slate-50">{assignment.userName}</strong>
                   </li>
                 ))
               ) : (
-                <li className="empty-state">No assignments yet. Spin when ready.</li>
+                <li className="flex justify-center rounded-2xl border border-slate-400/15 bg-slate-800/70 p-4 text-slate-400">
+                  No assignments yet. Spin when ready.
+                </li>
               )}
             </ul>
           </div>

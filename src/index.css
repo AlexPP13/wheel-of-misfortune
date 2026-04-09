@@ -1,42 +1,62 @@
-:root {
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  color: #e2e8f0;
-  background:
-    radial-gradient(circle at top, rgba(192, 132, 252, 0.18), transparent 30%),
-    linear-gradient(180deg, #020617 0%, #111827 100%);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@import "tailwindcss";
+
+@theme {
+  --font-sans: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
-* {
-  box-sizing: border-box;
+@layer base {
+  :root {
+    font-family: var(--font-sans);
+    line-height: 1.5;
+    font-weight: 400;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    color: #e2e8f0;
+    background:
+      radial-gradient(circle at top, rgba(192, 132, 252, 0.18), transparent 30%),
+      linear-gradient(180deg, #020617 0%, #111827 100%);
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scrollbar-gutter: stable;
+  }
+
+  body {
+    margin: 0;
+    min-width: 320px;
+    min-height: 100vh;
+    @apply bg-slate-950 text-slate-200;
+  }
+
+  button,
+  input {
+    font: inherit;
+  }
+
+  a {
+    color: inherit;
+  }
 }
 
-html {
-  scrollbar-gutter: stable;
-}
+@layer components {
+  .glass-panel {
+    @apply rounded-3xl border border-slate-400/20 bg-slate-950/70 backdrop-blur-xl;
+    box-shadow: 0 20px 60px rgba(15, 23, 42, 0.18);
+  }
 
-body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-button,
-input {
-  font: inherit;
+  .pill-button {
+    @apply rounded-full px-4 py-3 text-sm font-medium transition duration-200 enabled:hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50;
+  }
 }
 
 #root {
   width: min(1400px, 100%);
   margin: 0 auto;
   min-height: 100vh;
-}
-
-a {
-  color: inherit;
 }
