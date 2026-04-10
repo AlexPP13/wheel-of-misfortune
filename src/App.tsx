@@ -29,6 +29,7 @@ function App() {
   const [isReelSpinning, setIsReelSpinning] = useState(false)
   const [activeUserId, setActiveUserId] = useState<string | null>(null)
   const [currentChoreId, setCurrentChoreId] = useState<string | null>(null)
+  const [confettiBurstKey, setConfettiBurstKey] = useState(0)
   const [activeView, setActiveView] = useState<AppView>('users')
   const [message, setMessage] = useState('Summon the cast, feed the wheel, and unleash chore destiny.')
 
@@ -174,6 +175,7 @@ function App() {
 
         setAssignments((current) => [...current, nextAssignment])
         setHistoryCounts(nextCounts)
+        setConfettiBurstKey((current) => current + 1)
         setMessage(`🔥 ${chosenUser.name} has been dramatically volunteered for ${chore.name}.`)
 
         await new Promise((resolve) => window.setTimeout(resolve, 650))
@@ -295,6 +297,7 @@ function App() {
         <DoomDomeSection
           activeUserId={activeUserId}
           canSpin={canSpin}
+          confettiBurstKey={confettiBurstKey}
           currentChoreName={currentChoreName}
           isSpinning={isSpinning}
           isReelSpinning={isReelSpinning}
