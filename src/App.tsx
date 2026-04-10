@@ -6,6 +6,8 @@ import DoomDomeSection from './components/DoomDomeSection'
 import EditableListPanel from './components/EditableListPanel'
 import FairnessRadar from './components/FairnessRadar'
 import HeroSection from './components/HeroSection'
+import NavigationTabs from './components/NavigationTabs'
+import ViewSpotlight from './components/ViewSpotlight'
 import {
   STORAGE_KEY,
   chooseFairestUser,
@@ -14,6 +16,9 @@ import {
   getStoredState,
 } from './lib/app-state'
 import type { Assignment, Chore, HistoryStats, PersistedState, User } from './types/app'
+
+type AppView = 'play' | 'chores' | 'users'
+const wizardOrder: AppView[] = ['users', 'chores', 'play']
 
 function App() {
   const [initialState] = useState<PersistedState>(() => getStoredState())
@@ -26,6 +31,7 @@ function App() {
   const [isSpinning, setIsSpinning] = useState(false)
   const [activeUserId, setActiveUserId] = useState<string | null>(null)
   const [currentChoreId, setCurrentChoreId] = useState<string | null>(null)
+  const [activeView, setActiveView] = useState<AppView>('users')
   const [message, setMessage] = useState('Summon the cast, feed the wheel, and unleash chore destiny.')
 
   useEffect(() => {
@@ -77,6 +83,20 @@ function App() {
 
   const assignedPercent = chores.length > 0 ? Math.round((assignments.length / chores.length) * 100) : 0
   const canSpin = users.length > 0 && chores.length > 0 && !isSpinning
+  const hasUsers = users.length > 0
+  const hasChores = chores.length > 0
+
+  const goToNextStep = () => {
+    const currentIndex = wizardOrder.indexOf(activeView)
+    const nextView = wizardOrder[Math.min(currentIndex + 1, wizardOrder.length - 1)]
+    setActiveView(nextView)
+  }
+
+  const goToPreviousStep = () => {
+    const currentIndex = wizardOrder.indexOf(activeView)
+    const previousView = wizardOrder[Math.max(currentIndex - 1, 0)]
+    setActiveView(previousView)
+  }
 
   const addUser = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -210,59 +230,172 @@ function App() {
     meta: `${historyCounts[user.id] ?? 0} total chores across all spins`,
     highlighted: activeUserId === user.id,
   }))
+  const viewItems = [
+    {
+      id: 'users' as const,
+      label: 'Users',
+      caption: hasUsers ? 'Roster ready for the wheel' : 'Add at least one player',
+      badge: users.length,
+      ready: hasUsers,
+      step: 1,
+    },
+    {
+      id: 'chores' as const,
+      label: 'Chores',
+      caption: hasChores ? 'Task list loaded' : 'Add chores to assign',
+      badge: chores.length,
+      ready: hasChores,
+      step: 2,
+    },
+    {
+      id: 'play' as const,
+      label: 'Play',
+      caption: canSpin ? 'Ready to run the wheel' : 'Complete setup to spin',
+      badge: assignments.length,
+      ready: hasUsers && hasChores,
+      step: 3,
+    },
+  ]
+
+  const renderActiveView = () => {
+    if (activeView === 'users') {
+      return (
+        <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+          <EditableListPanel
+            buttonLabel="Add"
+            count={users.length}
+            disabled={isSpinning}
+            inputLabel="User name"
+            inputPlaceholder="Add a contestant"
+            items={userItems}
+            onInputChange={setUserName}
+            onRemove={removeUser}
+            onSubmit={addUser}
+            panelLabel="Step 1 · roster"
+            title="Users"
+            value={userName}
+          />
+          <div className="space-y-6">
+            <ViewSpotlight
+              eyebrow="Step 1"
+              title="Choose who is entering the wheel."
+              description="This is the first step in the flow. Everyone listed here becomes eligible for assignment later, and you can still come back from the play screen to edit the roster."
+              actions={[
+                {
+                  label: 'Continue to chores',
+                  onClick: goToNextStep,
+                  tone: 'primary',
+                },
+              ]}
+              stats={[
+                { label: 'Active users', value: users.length },
+                { label: 'Fairest leader', value: fairnessLeaders[0]?.name ?? 'Nobody yet' },
+                { label: 'Top count', value: Math.max(0, ...users.map((user) => historyCounts[user.id] ?? 0)) },
+              ]}
+            />
+            <FairnessRadar fairnessLeaders={fairnessLeaders} historyCounts={historyCounts} />
+          </div>
+        </section>
+      )
+    }
+
+    if (activeView === 'chores') {
+      return (
+        <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+          <ChoreListPanel
+            assignmentsChoreIds={assignmentChoreIds}
+            chores={chores}
+            disabled={isSpinning}
+            onInputChange={setChoreName}
+            onRemove={removeChore}
+            onSubmit={addChore}
+            value={choreName}
+          />
+          <div className="space-y-6">
+            <ViewSpotlight
+              eyebrow="Step 2"
+              title="Load the chores that the wheel can assign."
+              description="This step defines the round. Add every chore you want in the draw, then move forward to the game screen. You can always jump back here with the stepper or the edit buttons."
+              actions={[
+                {
+                  label: 'Back to users',
+                  onClick: goToPreviousStep,
+                },
+                {
+                  label: 'Continue to play',
+                  onClick: goToNextStep,
+                  tone: 'primary',
+                },
+              ]}
+              stats={[
+                { label: 'Queued chores', value: chores.length },
+                { label: 'Still unassigned', value: remainingChores.length },
+                { label: 'Locked this round', value: assignments.length },
+              ]}
+            />
+            <AssignmentsPanel assignmentRows={assignmentRows} />
+          </div>
+        </section>
+      )
+    }
+
+    return (
+      <>
+        <HeroSection
+          assignedPercent={assignedPercent}
+          assignmentsCount={assignments.length}
+          canSpin={canSpin}
+          isSpinning={isSpinning}
+          message={message}
+          onResetEverything={resetEverything}
+          onResetRound={resetRound}
+          onRunSpin={runSpin}
+          remainingChoresCount={remainingChores.length}
+          usersCount={users.length}
+        />
+        <section className="mb-6 grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
+          <DoomDomeSection
+            activeUserId={activeUserId}
+            currentChoreName={currentChoreName}
+            fairnessRank={fairnessRank}
+            historyCounts={historyCounts}
+            isSpinning={isSpinning}
+            users={users}
+          />
+          <FairnessRadar fairnessLeaders={fairnessLeaders} historyCounts={historyCounts} />
+        </section>
+
+        <section className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+          <AssignmentsPanel assignmentRows={assignmentRows} />
+          <ViewSpotlight
+            eyebrow="Step 3"
+            title="Spin the wheel, then edit setup whenever needed."
+            description="The game screen now acts as the final wizard step. Run the round here, or jump back to the earlier steps to change players and chores without losing the overall flow."
+            actions={[
+              {
+                label: 'Edit users',
+                onClick: () => setActiveView('users'),
+              },
+              {
+                label: 'Edit chores',
+                onClick: () => setActiveView('chores'),
+              },
+            ]}
+            stats={[
+              { label: 'Users ready', value: users.length },
+              { label: 'Chores ready', value: chores.length },
+              { label: 'Completion', value: `${assignedPercent}%` },
+            ]}
+          />
+        </section>
+      </>
+    )
+  }
 
   return (
     <AppShell>
-      <HeroSection
-        assignedPercent={assignedPercent}
-        assignmentsCount={assignments.length}
-        canSpin={canSpin}
-        isSpinning={isSpinning}
-        message={message}
-        onResetEverything={resetEverything}
-        onResetRound={resetRound}
-        onRunSpin={runSpin}
-        remainingChoresCount={remainingChores.length}
-        usersCount={users.length}
-      />
-      <section className="mb-6 grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
-        <DoomDomeSection
-          activeUserId={activeUserId}
-          currentChoreName={currentChoreName}
-          fairnessRank={fairnessRank}
-          historyCounts={historyCounts}
-          isSpinning={isSpinning}
-          users={users}
-        />
-        <FairnessRadar fairnessLeaders={fairnessLeaders} historyCounts={historyCounts} />
-      </section>
-
-      <section className="grid gap-6 xl:grid-cols-3">
-        <EditableListPanel
-          buttonLabel="Add"
-          count={users.length}
-          disabled={isSpinning}
-          inputLabel="User name"
-          inputPlaceholder="Add a contestant"
-          items={userItems}
-          onInputChange={setUserName}
-          onRemove={removeUser}
-          onSubmit={addUser}
-          panelLabel="Roster control"
-          title="Users"
-          value={userName}
-        />
-        <ChoreListPanel
-          assignmentsChoreIds={assignmentChoreIds}
-          chores={chores}
-          disabled={isSpinning}
-          onInputChange={setChoreName}
-          onRemove={removeChore}
-          onSubmit={addChore}
-          value={choreName}
-        />
-        <AssignmentsPanel assignmentRows={assignmentRows} />
-      </section>
+      <NavigationTabs activeView={activeView} items={viewItems} onChange={setActiveView} />
+      {renderActiveView()}
     </AppShell>
   )
 }

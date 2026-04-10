@@ -119,6 +119,54 @@
     @apply rounded-full border border-white/10 bg-white/8 px-3 py-1.5 text-sm font-semibold text-white;
   }
 
+  .view-tab {
+    @apply flex items-center justify-between gap-4 rounded-[1.6rem] border border-white/10 bg-black/20 px-5 py-4 text-left transition duration-300 hover:-translate-y-1;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  .view-tab-active {
+    border-color: rgba(250, 204, 21, 0.36);
+    background:
+      radial-gradient(circle at top left, rgba(249, 115, 22, 0.16), transparent 36%),
+      linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      0 0 0 1px rgba(250, 204, 21, 0.16),
+      0 18px 50px rgba(0, 0, 0, 0.24);
+  }
+
+  .view-tab__copy {
+    @apply flex min-w-0 flex-col;
+  }
+
+  .view-tab__meta {
+    @apply mb-2 flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.24em];
+  }
+
+  .view-tab__step {
+    @apply text-white/45;
+  }
+
+  .view-tab__status {
+    @apply rounded-full border border-white/10 bg-white/6 px-2.5 py-1 text-[0.62rem] text-white/65;
+  }
+
+  .view-tab__status-ready {
+    @apply border-emerald-300/20 bg-emerald-400/10 text-emerald-100;
+  }
+
+  .view-tab__label {
+    @apply text-lg font-black uppercase tracking-[0.02em] text-white;
+  }
+
+  .view-tab__caption {
+    @apply mt-1 text-sm text-white/58;
+  }
+
+  .view-tab__badge {
+    @apply inline-flex h-10 min-w-10 items-center justify-center rounded-full border border-white/12 bg-white/8 px-3 text-sm font-black text-white;
+  }
+
   .score-grid {
     @apply grid gap-3 sm:grid-cols-3;
   }
