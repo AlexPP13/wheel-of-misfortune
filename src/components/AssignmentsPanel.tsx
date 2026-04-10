@@ -29,11 +29,20 @@ function AssignmentsPanel({ assignmentRows }: AssignmentsPanelProps) {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
               >
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.28em] text-stone-700/70">Assigned chore</p>
-                  <strong className="mt-2 block text-lg text-stone-900">{assignment.choreName}</strong>
+                <div className="assignment-card__meta">
+                  <span className="assignment-card__index">Draw {index + 1}</span>
+                  <span className="assignment-card__label">Assigned to</span>
                 </div>
-                <div className="assignment-winner">{assignment.userName}</div>
+                <div className="assignment-card__body">
+                  <div className="assignment-card__person">
+                    <p className="assignment-card__person-label">Assigned to</p>
+                    <strong className="assignment-card__name">{assignment.userName}</strong>
+                  </div>
+                  <div className="assignment-card__chore-block">
+                    <p className="assignment-card__chore-label">Chore</p>
+                    <strong className="assignment-card__chore">{assignment.choreName}</strong>
+                  </div>
+                </div>
               </motion.div>
             ))
           ) : (

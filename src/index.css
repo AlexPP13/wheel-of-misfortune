@@ -316,14 +316,56 @@
   }
 
   .assignment-card {
-    @apply flex flex-col gap-4 rounded-[1.3rem] border border-[#8d6839] p-4;
+    @apply flex flex-col gap-2.5 rounded-[1.2rem] border border-[#8d6839] p-3;
     background:
       radial-gradient(circle at top left, rgba(246, 218, 145, 0.24), transparent 28%),
       linear-gradient(180deg, rgba(247, 234, 200, 0.92), rgba(226, 201, 150, 0.9));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 249, 235, 0.54),
+      0 12px 22px rgba(63, 39, 13, 0.12);
   }
 
-  .assignment-winner {
-    @apply inline-flex w-fit items-center rounded-full border border-[#7a592d] bg-[#d9be83] px-4 py-2 text-sm font-semibold uppercase tracking-[0.2em] text-[#4e3319];
+  .assignment-card__meta {
+    @apply flex items-center justify-between gap-3;
+  }
+
+  .assignment-card__index {
+    @apply inline-flex items-center rounded-full border border-[#896634] bg-[#ead5aa] px-3 py-1 text-[0.65rem] font-bold uppercase tracking-[0.24em] text-[#62401d];
+  }
+
+  .assignment-card__label {
+    @apply text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-stone-700/72;
+  }
+
+  .assignment-card__body {
+    @apply grid gap-2 rounded-[0.95rem] border border-[#b38c53]/55 bg-[#f8edd1]/80 p-2.5 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] sm:items-start;
+  }
+
+  .assignment-card__person {
+    @apply flex min-w-0 flex-col gap-1;
+  }
+
+  .assignment-card__person-label {
+    @apply text-[0.62rem] font-semibold uppercase tracking-[0.26em] text-stone-700/72;
+  }
+
+  .assignment-card__name {
+    @apply block text-lg leading-tight font-black uppercase tracking-[0.01em] text-stone-900;
+    overflow-wrap: anywhere;
+  }
+
+  .assignment-card__chore-block {
+    @apply min-w-0 rounded-[0.85rem] border border-[#7a592d] bg-[#d9be83] px-3 py-2.5 text-left;
+    box-shadow: inset 0 1px 0 rgba(255, 249, 231, 0.38);
+  }
+
+  .assignment-card__chore-label {
+    @apply text-[0.62rem] font-semibold uppercase tracking-[0.26em] text-[#62401d]/80;
+  }
+
+  .assignment-card__chore {
+    @apply mt-1 block text-[0.95rem] leading-tight font-black uppercase tracking-[0.02em] text-[#3c2511];
+    overflow-wrap: anywhere;
   }
 
   .empty-state {
