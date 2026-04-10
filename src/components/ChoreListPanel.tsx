@@ -1,0 +1,85 @@
+import { AnimatePresence, motion } from 'framer-motion'
+import type { FormEvent } from 'react'
+
+import type { Chore } from '../types/app'
+
+type ChoreListPanelProps = {
+  assignmentsChoreIds: Set<string>
+  chores: Chore[]
+  disabled?: boolean
+  onInputChange: (value: string) => void
+  onRemove: (id: string) => void
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void
+  value: string
+}
+
+function ChoreListPanel({
+  assignmentsChoreIds,
+  chores,
+  disabled = false,
+  onInputChange,
+  onRemove,
+  onSubmit,
+  value,
+}: ChoreListPanelProps) {
+  return (
+    <div className="glass-panel p-6">
+      <div className="mb-5 flex items-center justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-orange-200/65">Threat queue</p>
+          <h2 className="mt-2 text-2xl font-black uppercase tracking-[-0.03em] text-white">Chores</h2>
+        </div>
+        <span className="count-pill">{chores.length}</span>
+      </div>
+
+      <form className="mb-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]" onSubmit={onSubmit}>
+        <input
+          className="dramatic-input"
+          value={value}
+          onChange={(event) => onInputChange(event.target.value)}
+          placeholder="Add a catastrophe"
+          aria-label="Chore name"
+        />
+        <button type="submit" className="dramatic-button dramatic-button-emerald">
+          Add
+        </button>
+      </form>
+
+      <div className="space-y-3">
+        <AnimatePresence>
+          {chores.map((chore) => {
+            const isAssigned = assignmentsChoreIds.has(chore.id)
+
+            return (
+              <motion.div
+                key={chore.id}
+                className={['list-card', isAssigned ? 'list-card-success' : ''].filter(Boolean).join(' ')}
+                layout
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+              >
+                <div>
+                  <strong className="text-white">{chore.name}</strong>
+                  <span className="mt-1 block text-sm text-white/62">
+                    {isAssigned ? 'Assigned this round' : 'Waiting in the blast radius'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="dramatic-button dramatic-button-danger dramatic-button-small"
+                  onClick={() => onRemove(chore.id)}
+                  disabled={disabled}
+                >
+                  Remove
+                </button>
+              </motion.div>
+            )
+          })}
+        </AnimatePresence>
+      </div>
+    </div>
+  )
+}
+
+export default ChoreListPanel
