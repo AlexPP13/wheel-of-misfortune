@@ -41,9 +41,31 @@ export function getStoredState(): PersistedState {
 
 export function chooseFairestUser(users: User[], counts: HistoryStats) {
   const lowestCount = Math.min(...users.map((user) => counts[user.id] ?? 0))
-  const candidates = users.filter((user) => (counts[user.id] ?? 0) === lowestCount)
-  const randomIndex = Math.floor(Math.random() * candidates.length)
-  return candidates[randomIndex]
+  const highestCount = Math.max(...users.map((user) => counts[user.id] ?? 0))
+  const spread = highestCount - lowestCount
+
+  const weightedUsers = users.map((user) => {
+    const count = counts[user.id] ?? 0
+    const distanceFromLowest = count - lowestCount
+
+    return {
+      user,
+      weight: Math.max(1, spread + 1 - distanceFromLowest),
+    }
+  })
+
+  const totalWeight = weightedUsers.reduce((sum, entry) => sum + entry.weight, 0)
+  let roll = Math.random() * totalWeight
+
+  for (const entry of weightedUsers) {
+    roll -= entry.weight
+
+    if (roll <= 0) {
+      return entry.user
+    }
+  }
+
+  return weightedUsers[weightedUsers.length - 1].user
 }
 
 export function getUserAura(index: number) {

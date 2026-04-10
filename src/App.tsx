@@ -146,6 +146,7 @@ function App() {
 
     let nextCounts = { ...historyCounts }
     const producedAssignments: Assignment[] = []
+    const assignedUserIds = new Set(assignments.map((assignment) => assignment.userId))
 
     try {
       for (const chore of remainingChores) {
@@ -160,7 +161,8 @@ function App() {
           await new Promise((resolve) => window.setTimeout(resolve, 85 + tick * 16))
         }
 
-        const chosenUser = chooseFairestUser(users, nextCounts)
+        const eligibleUsers = assignedUserIds.size < users.length ? users.filter((user) => !assignedUserIds.has(user.id)) : users
+        const chosenUser = chooseFairestUser(eligibleUsers, nextCounts)
         setActiveUserId(chosenUser.id)
         setIsReelSpinning(false)
         carnivalAudioRef.current?.stop()
@@ -168,6 +170,7 @@ function App() {
 
         const nextAssignment = { choreId: chore.id, userId: chosenUser.id }
         producedAssignments.push(nextAssignment)
+        assignedUserIds.add(chosenUser.id)
         nextCounts = {
           ...nextCounts,
           [chosenUser.id]: (nextCounts[chosenUser.id] ?? 0) + 1,
