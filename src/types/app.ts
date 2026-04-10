@@ -17,11 +17,14 @@ export type Assignment = {
 
 export type HistoryStats = Record<string, number>
 
+export type ChoreHistoryStats = Record<string, Record<string, number>>
+
 export type PersistedState = {
   users: User[]
   chores: Chore[]
   assignments: Assignment[]
   historyCounts: HistoryStats
+  choreHistoryCounts: ChoreHistoryStats
 }
 
 export type AssignmentRow = Assignment & {

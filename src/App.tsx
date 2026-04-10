@@ -12,7 +12,7 @@ import {
   getStoredState,
 } from './lib/app-state'
 import { CarnivalAudio } from './lib/carnivalAudio'
-import type { Assignment, Chore, HistoryStats, PersistedState, User } from './types/app'
+import type { Assignment, Chore, ChoreHistoryStats, HistoryStats, PersistedState, User } from './types/app'
 
 type AppView = 'play' | 'chores' | 'users'
 
@@ -23,6 +23,7 @@ function App() {
   const [chores, setChores] = useState<Chore[]>(initialState.chores)
   const [assignments, setAssignments] = useState<Assignment[]>(initialState.assignments)
   const [historyCounts, setHistoryCounts] = useState<HistoryStats>(initialState.historyCounts)
+  const [choreHistoryCounts, setChoreHistoryCounts] = useState<ChoreHistoryStats>(initialState.choreHistoryCounts)
   const [userName, setUserName] = useState('')
   const [choreName, setChoreName] = useState('')
   const [isSpinning, setIsSpinning] = useState(false)
@@ -38,12 +39,26 @@ function App() {
       acc[user.id] = historyCounts[user.id] ?? 0
       return acc
     }, {})
+    const sanitizedChoreHistoryCounts = chores.reduce<ChoreHistoryStats>((acc, chore) => {
+      acc[chore.id] = users.reduce<HistoryStats>((userAcc, user) => {
+        userAcc[user.id] = choreHistoryCounts[chore.id]?.[user.id] ?? 0
+        return userAcc
+      }, {})
+
+      return acc
+    }, {})
 
     localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ users, chores, assignments, historyCounts: sanitizedCounts }),
+      JSON.stringify({
+        users,
+        chores,
+        assignments,
+        historyCounts: sanitizedCounts,
+        choreHistoryCounts: sanitizedChoreHistoryCounts,
+      }),
     )
-  }, [users, chores, assignments, historyCounts])
+  }, [users, chores, assignments, historyCounts, choreHistoryCounts])
 
   useEffect(() => {
     return () => {
@@ -92,6 +107,18 @@ function App() {
     const newUser = { id: crypto.randomUUID(), name: trimmed, disabled: false }
     setUsers((current) => [...current, newUser])
     setHistoryCounts((current) => ({ ...current, [newUser.id]: 0 }))
+    setChoreHistoryCounts((current) => {
+      const next = { ...current }
+
+      for (const chore of chores) {
+        next[chore.id] = {
+          ...next[chore.id],
+          [newUser.id]: 0,
+        }
+      }
+
+      return next
+    })
     setUserName('')
   }
 
@@ -101,7 +128,15 @@ function App() {
 
     if (!trimmed) return
 
-    setChores((current) => [...current, { id: crypto.randomUUID(), name: trimmed, disabled: false }])
+    const newChore = { id: crypto.randomUUID(), name: trimmed, disabled: false }
+    setChores((current) => [...current, newChore])
+    setChoreHistoryCounts((current) => ({
+      ...current,
+      [newChore.id]: users.reduce<HistoryStats>((acc, user) => {
+        acc[user.id] = 0
+        return acc
+      }, {}),
+    }))
     setChoreName('')
   }
 
@@ -111,6 +146,17 @@ function App() {
     setHistoryCounts((current) => {
       const next = { ...current }
       delete next[userId]
+      return next
+    })
+    setChoreHistoryCounts((current) => {
+      const next = Object.fromEntries(
+        Object.entries(current).map(([choreId, counts]) => {
+          const nextCounts = { ...counts }
+          delete nextCounts[userId]
+          return [choreId, nextCounts]
+        }),
+      ) as ChoreHistoryStats
+
       return next
     })
 
@@ -130,6 +176,11 @@ function App() {
   const removeChore = (choreId: string) => {
     setChores((current) => current.filter((chore) => chore.id !== choreId))
     setAssignments((current) => current.filter((assignment) => assignment.choreId !== choreId))
+    setChoreHistoryCounts((current) => {
+      const next = { ...current }
+      delete next[choreId]
+      return next
+    })
 
     if (currentChoreId === choreId) {
       setCurrentChoreId(null)
@@ -172,6 +223,7 @@ function App() {
     setMessage('⚡ The arena awakens. Lights flash. Fate starts screaming...')
 
     let nextCounts = { ...historyCounts }
+    let nextChoreCounts = { ...choreHistoryCounts }
     const producedAssignments: Assignment[] = []
     const assignedUserIds = new Set(assignments.map((assignment) => assignment.userId))
 
@@ -192,7 +244,7 @@ function App() {
           assignedUserIds.size < enabledUsers.length
             ? enabledUsers.filter((user) => !assignedUserIds.has(user.id))
             : enabledUsers
-        const chosenUser = chooseFairestUser(eligibleUsers, nextCounts)
+        const chosenUser = chooseFairestUser(eligibleUsers, nextCounts, chore.id, nextChoreCounts)
         setActiveUserId(chosenUser.id)
         setIsReelSpinning(false)
         carnivalAudioRef.current?.stop()
@@ -205,9 +257,17 @@ function App() {
           ...nextCounts,
           [chosenUser.id]: (nextCounts[chosenUser.id] ?? 0) + 1,
         }
+        nextChoreCounts = {
+          ...nextChoreCounts,
+          [chore.id]: {
+            ...nextChoreCounts[chore.id],
+            [chosenUser.id]: (nextChoreCounts[chore.id]?.[chosenUser.id] ?? 0) + 1,
+          },
+        }
 
         setAssignments((current) => [...current, nextAssignment])
         setHistoryCounts(nextCounts)
+        setChoreHistoryCounts(nextChoreCounts)
         setConfettiBurstKey((current) => current + 1)
         setMessage(`🔥 ${chosenUser.name} has been dramatically volunteered for ${chore.name}.`)
 
@@ -245,6 +305,7 @@ function App() {
     setChores(freshState.chores)
     setAssignments(freshState.assignments)
     setHistoryCounts(freshState.historyCounts)
+    setChoreHistoryCounts(freshState.choreHistoryCounts)
     setCurrentChoreId(null)
     setActiveUserId(null)
     setIsSpinning(false)

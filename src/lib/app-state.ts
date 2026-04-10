@@ -1,4 +1,4 @@
-import type { HistoryStats, PersistedState, User } from '../types/app'
+import type { ChoreHistoryStats, HistoryStats, PersistedState, User } from '../types/app'
 
 export const STORAGE_KEY = 'wheel-of-unfortune-state'
 
@@ -8,6 +8,7 @@ export function createDefaultState(): PersistedState {
     chores: [],
     assignments: [],
     historyCounts: {},
+    choreHistoryCounts: {},
   }
 }
 
@@ -42,6 +43,7 @@ export function getStoredState(): PersistedState {
       : fallback.chores
     const assignments = Array.isArray(parsed.assignments) ? parsed.assignments : []
     const incomingCounts = parsed.historyCounts ?? {}
+    const incomingChoreHistoryCounts = parsed.choreHistoryCounts ?? {}
 
     const historyCounts = users.reduce<HistoryStats>((acc, user) => {
       const count = incomingCounts[user.id]
@@ -49,28 +51,53 @@ export function getStoredState(): PersistedState {
       return acc
     }, {})
 
-    return { users, chores, assignments, historyCounts }
+    const choreHistoryCounts = chores.reduce<ChoreHistoryStats>((acc, chore) => {
+      const choreCounts = incomingChoreHistoryCounts[chore.id]
+
+      acc[chore.id] = users.reduce<HistoryStats>((userAcc, user) => {
+        const count = choreCounts?.[user.id]
+        userAcc[user.id] = typeof count === 'number' ? count : 0
+        return userAcc
+      }, {})
+
+      return acc
+    }, {})
+
+    return { users, chores, assignments, historyCounts, choreHistoryCounts }
   } catch {
     return fallback
   }
 }
 
-export function chooseFairestUser(users: User[], counts: HistoryStats) {
+export function chooseFairestUser(
+  users: User[],
+  counts: HistoryStats,
+  choreId: string,
+  choreHistoryCounts: ChoreHistoryStats,
+) {
   if (users.length === 0) {
     throw new Error('Cannot choose from an empty user list')
   }
 
-  const lowestCount = Math.min(...users.map((user) => counts[user.id] ?? 0))
-  const highestCount = Math.max(...users.map((user) => counts[user.id] ?? 0))
-  const spread = highestCount - lowestCount
+  const lowestOverallCount = Math.min(...users.map((user) => counts[user.id] ?? 0))
+  const highestOverallCount = Math.max(...users.map((user) => counts[user.id] ?? 0))
+  const overallSpread = highestOverallCount - lowestOverallCount
+  const choreCounts = choreHistoryCounts[choreId] ?? {}
+  const lowestChoreCount = Math.min(...users.map((user) => choreCounts[user.id] ?? 0))
+  const highestChoreCount = Math.max(...users.map((user) => choreCounts[user.id] ?? 0))
+  const choreSpread = highestChoreCount - lowestChoreCount
 
   const weightedUsers = users.map((user) => {
-    const count = counts[user.id] ?? 0
-    const distanceFromLowest = count - lowestCount
+    const overallCount = counts[user.id] ?? 0
+    const choreCount = choreCounts[user.id] ?? 0
+    const overallDistanceFromLowest = overallCount - lowestOverallCount
+    const choreDistanceFromLowest = choreCount - lowestChoreCount
+    const overallWeight = Math.max(1, overallSpread + 1 - overallDistanceFromLowest)
+    const choreWeight = Math.max(1, choreSpread + 1 - choreDistanceFromLowest)
 
     return {
       user,
-      weight: Math.max(1, spread + 1 - distanceFromLowest),
+      weight: overallWeight * choreWeight,
     }
   })
 
