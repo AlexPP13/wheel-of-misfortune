@@ -19,7 +19,14 @@ RUN bun run build
 # CMD ["bun", "run", "preview", "--host", "0.0.0.0", "--port", "4173"]
 
 FROM deps AS development
+ARG UID=1001
+ARG GID=0
+
 ENV NODE_ENV=development
 COPY . .
+
+RUN chown -R ${UID}:${GID} /app && \
+    chmod -R g=u /app
+
 EXPOSE 5173
 CMD ["bun", "run", "dev", "--host", "0.0.0.0", "--port", "5173"]
