@@ -10,9 +10,6 @@ type DoomDomeSectionProps = {
   isReelSpinning: boolean
   isSpinning: boolean
   message: string
-  onEditChores: () => void
-  onEditUsers: () => void
-  onResetEverything: () => void
   onResetRound: () => void
   onRunSpin: () => void
   users: User[]
@@ -25,9 +22,6 @@ function DoomDomeSection({
   isReelSpinning,
   isSpinning,
   message,
-  onEditChores,
-  onEditUsers,
-  onResetEverything,
   onResetRound,
   onRunSpin,
   users,

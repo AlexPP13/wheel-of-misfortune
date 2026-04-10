@@ -278,9 +278,6 @@ function App() {
           isSpinning={isSpinning}
           isReelSpinning={isReelSpinning}
           message={message}
-          onEditChores={() => setActiveView('chores')}
-          onEditUsers={() => setActiveView('users')}
-          onResetEverything={resetEverything}
           onResetRound={resetRound}
           onRunSpin={runSpin}
           users={users}
