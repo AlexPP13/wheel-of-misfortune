@@ -31,6 +31,19 @@ function DoomDomeSection({
   users,
 }: DoomDomeSectionProps) {
   const activeUser = activeUserId ? users.find((user) => user.id === activeUserId) ?? null : null
+  const activeIndex = activeUserId ? users.findIndex((user) => user.id === activeUserId) : 0
+  const safeActiveIndex = activeIndex >= 0 ? activeIndex : 0
+  const spinningReelUsers = users.length > 0 ? [...users, ...users, ...users, ...users, ...users, ...users] : []
+  const staticReelUsers =
+    users.length > 0
+      ? [
+          users[(safeActiveIndex - 2 + users.length) % users.length],
+          users[(safeActiveIndex - 1 + users.length) % users.length],
+          users[safeActiveIndex],
+          users[(safeActiveIndex + 1) % users.length],
+          users[(safeActiveIndex + 2) % users.length],
+        ]
+      : []
 
   return (
     <motion.div className="stage-panel overflow-hidden p-5 sm:p-6" initial="hidden" animate="visible" variants={panelMotion}>
@@ -61,30 +74,72 @@ function DoomDomeSection({
             className="spotlight-chip"
             animate={isSpinning ? { scale: [1, 1.08, 1], opacity: [0.75, 1, 0.75] } : { scale: 1, opacity: 1 }}
             transition={{ duration: 0.95, repeat: isSpinning ? Infinity : 0 }}
-            >
+          >
             {isSpinning ? 'SCANNING FOR A VOLUNTEER' : 'READY FOR A SPIN'}
           </motion.div>
 
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={`${currentChoreName}-${activeUser?.id ?? 'idle'}`}
-              className="text-center"
-              initial={{ opacity: 0, y: 18, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -18, scale: 0.95 }}
-              transition={{ duration: 0.35 }}
-            >
-              <p className="text-xs font-semibold uppercase tracking-[0.4em] text-white/45">Now threatening</p>
-              <h3 className="mt-4 text-4xl font-black uppercase tracking-[-0.04em] text-amber-50 sm:text-5xl">
+          <div className="mt-6 w-full max-w-md text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.4em] text-amber-100/55">Current chore</p>
+            <AnimatePresence mode="wait">
+              <motion.h3
+                key={currentChoreName}
+                className="mt-3 text-4xl font-black uppercase tracking-[-0.04em] text-amber-50 sm:text-5xl"
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -14 }}
+                transition={{ duration: 0.3 }}
+              >
                 {currentChoreName}
-              </h3>
-              <p className="mt-4 text-sm text-amber-100/72 sm:text-base">
-                {activeUser
-                  ? `${activeUser.name} is currently under the pointer.`
-                  : 'Spin the wheel and let the pointer settle.'}
-              </p>
-            </motion.div>
-          </AnimatePresence>
+              </motion.h3>
+            </AnimatePresence>
+
+            <div className="slot-machine-shell mt-6">
+              <div className="slot-machine-lights" />
+              <div className="slot-machine-window">
+                <div className="slot-machine-window__mask" />
+                {users.length > 0 ? (
+                  isSpinning ? (
+                    <div className="slot-reel slot-reel-spinning">
+                      {spinningReelUsers.map((user, index) => (
+                        <div key={`${user.id}-${index}`} className="slot-reel__item">
+                          {user.name}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={activeUser?.id ?? 'idle'}
+                        className="slot-reel"
+                        initial={{ opacity: 0.75, scale: 0.98 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0.75, scale: 0.98 }}
+                        transition={{ duration: 0.12 }}
+                      >
+                        {staticReelUsers.map((user, index) => (
+                          <div
+                            key={`${user.id}-${index}`}
+                            className={['slot-reel__item', index === 2 ? 'slot-reel__item-active' : '']
+                              .filter(Boolean)
+                              .join(' ')}
+                          >
+                            {user.name}
+                          </div>
+                        ))}
+                      </motion.div>
+                    </AnimatePresence>
+                  )
+                ) : (
+                  <div className="slot-reel__empty">Add users to load the reel</div>
+                )}
+                <div className="slot-machine-pointer" />
+              </div>
+            </div>
+
+            <p className="mt-4 text-sm text-amber-100/72 sm:text-base">
+              {activeUser ? `${activeUser.name} is under the pointer.` : 'Spin the wheel to start the draw.'}
+            </p>
+          </div>
 
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <button className="dramatic-button dramatic-button-primary" onClick={onRunSpin} disabled={!canSpin}>
