@@ -1,6 +1,5 @@
 type NavigationItem = {
   badge: number
-  caption: string
   id: string
   label: string
   ready: boolean
@@ -11,19 +10,20 @@ type NavigationTabsProps = {
   activeView: 'play' | 'chores' | 'users'
   items: NavigationItem[]
   onChange: (view: 'play' | 'chores' | 'users') => void
+  onResetEverything: () => void
 }
 
-function NavigationTabs({ activeView, items, onChange }: NavigationTabsProps) {
+function NavigationTabs({ activeView, items, onChange, onResetEverything }: NavigationTabsProps) {
   return (
-    <nav className="glass-panel mb-6 p-3 sm:p-4" aria-label="Wizard steps">
-      <div className="mb-4 flex items-center justify-between gap-4 px-2">
+    <nav className="glass-panel mb-4 p-2.5 sm:p-3" aria-label="Wizard steps">
+      <div className="mb-2 flex items-center justify-between gap-4 px-2">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.32em] text-stone-700/75">Setup flow</p>
-          <h2 className="mt-2 text-2xl font-black uppercase tracking-[-0.03em] text-stone-900">Wheel wizard</h2>
+          <h2 className="mt-1 text-xl font-black uppercase tracking-[-0.03em] text-stone-900">Wheel wizard</h2>
         </div>
-        <p className="max-w-sm text-right text-sm text-stone-700/80">
-          Follow the steps in order, or jump back to edit any part of the round.
-        </p>
+        <button type="button" className="dramatic-button dramatic-button-danger dramatic-button-small" onClick={onResetEverything}>
+          Complete reset
+        </button>
       </div>
 
       <div className="grid gap-3 md:grid-cols-3">
@@ -41,15 +41,14 @@ function NavigationTabs({ activeView, items, onChange }: NavigationTabsProps) {
               <span className="view-tab__copy">
                 <span className="view-tab__meta">
                   <span className="view-tab__step">Step {item.step}</span>
-                  <span className={['view-tab__status', item.ready ? 'view-tab__status-ready' : ''].filter(Boolean).join(' ')}>
-                    {item.ready ? 'Ready' : 'Needs setup'}
-                  </span>
+                <span className={['view-tab__status', item.ready ? 'view-tab__status-ready' : ''].filter(Boolean).join(' ')}>
+                  {item.ready ? 'Ready' : 'Needs setup'}
                 </span>
-                <span className="view-tab__label">{item.label}</span>
-                <span className="view-tab__caption">{item.caption}</span>
               </span>
-              <span className="view-tab__badge">{item.badge}</span>
-            </button>
+              <span className="view-tab__label">{item.label}</span>
+            </span>
+            <span className="view-tab__badge">{item.badge}</span>
+          </button>
           )
         })}
       </div>

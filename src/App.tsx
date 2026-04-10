@@ -213,7 +213,6 @@ function App() {
     {
       id: 'users' as const,
       label: 'Users',
-      caption: hasUsers ? 'Roster ready for the wheel' : 'Add at least one player',
       badge: users.length,
       ready: hasUsers,
       step: 1,
@@ -221,7 +220,6 @@ function App() {
     {
       id: 'chores' as const,
       label: 'Chores',
-      caption: hasChores ? 'Task list loaded' : 'Add chores to assign',
       badge: chores.length,
       ready: hasChores,
       step: 2,
@@ -229,7 +227,6 @@ function App() {
     {
       id: 'play' as const,
       label: 'Play',
-      caption: canSpin ? 'Ready to run the wheel' : 'Complete setup to spin',
       badge: assignments.length,
       ready: hasUsers && hasChores,
       step: 3,
@@ -297,7 +294,12 @@ function App() {
 
   return (
     <AppShell>
-      <NavigationTabs activeView={activeView} items={viewItems} onChange={setActiveView} />
+      <NavigationTabs
+        activeView={activeView}
+        items={viewItems}
+        onChange={setActiveView}
+        onResetEverything={resetEverything}
+      />
       {renderActiveView()}
     </AppShell>
   )

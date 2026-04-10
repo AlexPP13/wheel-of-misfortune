@@ -124,7 +124,7 @@
   }
 
   .view-tab {
-    @apply flex items-center justify-between gap-4 rounded-[1.2rem] border border-[#795428] bg-[#ead3a7] px-5 py-4 text-left transition duration-300 hover:-translate-y-1;
+    @apply flex items-center justify-between gap-3 rounded-[1rem] border border-[#795428] bg-[#ead3a7] px-3.5 py-2.5 text-left transition duration-300 hover:-translate-y-1;
     box-shadow: inset 0 1px 0 rgba(255, 247, 229, 0.45);
   }
 
@@ -144,7 +144,7 @@
   }
 
   .view-tab__meta {
-    @apply mb-2 flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.24em];
+    @apply mb-1 flex flex-wrap items-center gap-1.5 text-[0.62rem] font-semibold uppercase tracking-[0.18em];
   }
 
   .view-tab__step {
@@ -160,15 +160,11 @@
   }
 
   .view-tab__label {
-    @apply text-lg font-black uppercase tracking-[0.02em] text-stone-900;
-  }
-
-  .view-tab__caption {
-    @apply mt-1 text-sm text-stone-700/80;
+    @apply text-[0.95rem] font-black uppercase tracking-[0.02em] text-stone-900;
   }
 
   .view-tab__badge {
-    @apply inline-flex h-10 min-w-10 items-center justify-center rounded-full border border-[#7a582d] bg-[#f1ddb1] px-3 text-sm font-black text-[#4f3216];
+    @apply inline-flex h-7 min-w-7 items-center justify-center rounded-full border border-[#7a582d] bg-[#f1ddb1] px-2 text-[0.74rem] font-black text-[#4f3216];
   }
 
   .score-grid {
