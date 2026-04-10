@@ -71,12 +71,15 @@ function App() {
       .filter((item): item is NonNullable<typeof item> => Boolean(item))
   }, [assignments, chores, users])
 
+  const enabledUsers = useMemo(() => users.filter((user) => !user.disabled), [users])
+  const enabledChores = useMemo(() => chores.filter((chore) => !chore.disabled), [chores])
+
   const remainingChores = useMemo(() => {
     const assigned = new Set(assignments.map((assignment) => assignment.choreId))
-    return chores.filter((chore) => !assigned.has(chore.id))
-  }, [assignments, chores])
+    return enabledChores.filter((chore) => !assigned.has(chore.id))
+  }, [assignments, enabledChores])
 
-  const canSpin = users.length > 0 && chores.length > 0 && !isSpinning
+  const canSpin = enabledUsers.length > 0 && remainingChores.length > 0 && !isSpinning
   const hasUsers = users.length > 0
   const hasChores = chores.length > 0
 
@@ -86,7 +89,7 @@ function App() {
 
     if (!trimmed) return
 
-    const newUser = { id: crypto.randomUUID(), name: trimmed }
+    const newUser = { id: crypto.randomUUID(), name: trimmed, disabled: false }
     setUsers((current) => [...current, newUser])
     setHistoryCounts((current) => ({ ...current, [newUser.id]: 0 }))
     setUserName('')
@@ -98,7 +101,7 @@ function App() {
 
     if (!trimmed) return
 
-    setChores((current) => [...current, { id: crypto.randomUUID(), name: trimmed }])
+    setChores((current) => [...current, { id: crypto.randomUUID(), name: trimmed, disabled: false }])
     setChoreName('')
   }
 
@@ -116,6 +119,14 @@ function App() {
     }
   }
 
+  const toggleUserDisabled = (userId: string) => {
+    setUsers((current) => current.map((user) => (user.id === userId ? { ...user, disabled: !user.disabled } : user)))
+
+    if (activeUserId === userId) {
+      setActiveUserId(null)
+    }
+  }
+
   const removeChore = (choreId: string) => {
     setChores((current) => current.filter((chore) => chore.id !== choreId))
     setAssignments((current) => current.filter((assignment) => assignment.choreId !== choreId))
@@ -125,14 +136,30 @@ function App() {
     }
   }
 
+  const toggleChoreDisabled = (choreId: string) => {
+    setChores((current) => current.map((chore) => (chore.id === choreId ? { ...chore, disabled: !chore.disabled } : chore)))
+
+    if (currentChoreId === choreId) {
+      setCurrentChoreId(null)
+    }
+  }
+
   const runSpin = async () => {
-    if (users.length === 0) {
-      setMessage('No contestants. Add at least one mortal before the spectacle begins.')
+    if (enabledUsers.length === 0) {
+      setMessage(
+        users.length === 0
+          ? 'No contestants. Add at least one mortal before the spectacle begins.'
+          : 'All users are disabled for this round. Enable at least one to spin the wheel.',
+      )
       return
     }
 
     if (remainingChores.length === 0) {
-      setMessage('Every chore already has an unfortunate champion. Reset the round for encore chaos.')
+      setMessage(
+        enabledChores.length === 0 && chores.length > 0
+          ? 'All chores are disabled for this round. Enable one to put it back on the wheel.'
+          : 'Every chore already has an unfortunate champion. Reset the round for encore chaos.',
+      )
       return
     }
 
@@ -156,12 +183,15 @@ function App() {
         await carnivalAudioRef.current.start()
 
         for (let tick = 0; tick < 12; tick += 1) {
-          const highlighted = users[tick % users.length]
+          const highlighted = enabledUsers[tick % enabledUsers.length]
           setActiveUserId(highlighted.id)
           await new Promise((resolve) => window.setTimeout(resolve, 85 + tick * 16))
         }
 
-        const eligibleUsers = assignedUserIds.size < users.length ? users.filter((user) => !assignedUserIds.has(user.id)) : users
+        const eligibleUsers =
+          assignedUserIds.size < enabledUsers.length
+            ? enabledUsers.filter((user) => !assignedUserIds.has(user.id))
+            : enabledUsers
         const chosenUser = chooseFairestUser(eligibleUsers, nextCounts)
         setActiveUserId(chosenUser.id)
         setIsReelSpinning(false)
@@ -222,15 +252,29 @@ function App() {
     setMessage('Everything has been reset. The arena is empty until you add users and chores.')
   }
 
+  useEffect(() => {
+    if (users.length > 0 && enabledUsers.length === 0) {
+      setMessage('All users are disabled for this round. Enable at least one to spin the wheel.')
+      return
+    }
+
+    if (chores.length > 0 && enabledChores.length === 0) {
+      setMessage('All chores are disabled for this round. Enable one to put it back on the wheel.')
+    }
+  }, [chores.length, enabledChores.length, enabledUsers.length, users.length])
+
   const currentChoreName = currentChoreId
     ? chores.find((chore) => chore.id === currentChoreId)?.name ?? 'Finding victim…'
-    : remainingChores[0]?.name ?? 'All chores assigned'
+    : remainingChores[0]?.name ?? (enabledChores.length === 0 && chores.length > 0 ? 'No enabled chores' : 'All chores assigned')
 
   const assignmentChoreIds = new Set(assignments.map((assignment) => assignment.choreId))
   const userItems = users.map((user) => ({
     id: user.id,
     name: user.name,
-    meta: `${historyCounts[user.id] ?? 0} total chores across all spins`,
+    meta: user.disabled
+      ? `${historyCounts[user.id] ?? 0} total chores across all spins · disabled for this round`
+      : `${historyCounts[user.id] ?? 0} total chores across all spins`,
+    disabled: user.disabled,
     highlighted: activeUserId === user.id,
   }))
   const viewItems = [
@@ -270,6 +314,7 @@ function App() {
             items={userItems}
             onInputChange={setUserName}
             onRemove={removeUser}
+            onToggleDisabled={toggleUserDisabled}
             onSubmit={addUser}
             panelLabel="Step 1 · roster"
             title="Users"
@@ -288,6 +333,7 @@ function App() {
             disabled={isSpinning}
             onInputChange={setChoreName}
             onRemove={removeChore}
+            onToggleDisabled={toggleChoreDisabled}
             onSubmit={addChore}
             value={choreName}
           />
@@ -302,12 +348,19 @@ function App() {
           canSpin={canSpin}
           confettiBurstKey={confettiBurstKey}
           currentChoreName={currentChoreName}
+          idleHint={
+            users.length === 0
+              ? 'Add users to load the reel'
+              : enabledUsers.length === 0
+                ? 'All users are disabled for this round'
+                : 'Ready for chaos'
+          }
           isSpinning={isSpinning}
           isReelSpinning={isReelSpinning}
           message={message}
           onResetRound={resetRound}
           onRunSpin={runSpin}
-          users={users}
+          users={enabledUsers}
         />
         <AssignmentsPanel assignmentRows={assignmentRows} />
       </section>

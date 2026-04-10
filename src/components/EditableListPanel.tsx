@@ -6,6 +6,7 @@ type EditableItem = {
   name: string
   meta: string
   highlighted?: boolean
+  disabled?: boolean
 }
 
 type EditableListPanelProps = {
@@ -16,6 +17,7 @@ type EditableListPanelProps = {
   items: EditableItem[]
   onInputChange: (value: string) => void
   onRemove: (id: string) => void
+  onToggleDisabled?: (id: string) => void
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
   panelLabel: string
   title: string
@@ -33,6 +35,7 @@ function EditableListPanel({
   items,
   onInputChange,
   onRemove,
+  onToggleDisabled,
   onSubmit,
   panelLabel,
   title,
@@ -69,7 +72,9 @@ function EditableListPanel({
           {items.map((item) => (
             <motion.div
               key={item.id}
-              className={['list-card', item.highlighted ? 'list-card-active' : ''].filter(Boolean).join(' ')}
+              className={['list-card', item.highlighted ? 'list-card-active' : '', item.disabled ? 'list-card-disabled' : '']
+                .filter(Boolean)
+                .join(' ')}
               layout
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
@@ -79,14 +84,26 @@ function EditableListPanel({
                 <strong className="text-stone-900">{item.name}</strong>
                 <span className="mt-1 block text-sm text-stone-700/80">{item.meta}</span>
               </div>
-              <button
-                type="button"
-                className="dramatic-button dramatic-button-danger dramatic-button-small"
-                onClick={() => onRemove(item.id)}
-                disabled={disabled}
-              >
-                Remove
-              </button>
+              <div className="flex flex-wrap gap-2">
+                {onToggleDisabled ? (
+                  <button
+                    type="button"
+                    className="dramatic-button dramatic-button-muted dramatic-button-small"
+                    onClick={() => onToggleDisabled(item.id)}
+                    disabled={disabled}
+                  >
+                    {item.disabled ? 'Enable' : 'Disable'}
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className="dramatic-button dramatic-button-danger dramatic-button-small"
+                  onClick={() => onRemove(item.id)}
+                  disabled={disabled}
+                >
+                  Remove
+                </button>
+              </div>
             </motion.div>
           ))}
         </AnimatePresence>

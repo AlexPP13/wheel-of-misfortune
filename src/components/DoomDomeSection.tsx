@@ -9,6 +9,7 @@ type DoomDomeSectionProps = {
   canSpin: boolean
   confettiBurstKey: number
   currentChoreName: string
+  idleHint?: string
   isReelSpinning: boolean
   isSpinning: boolean
   message: string
@@ -40,6 +41,7 @@ function DoomDomeSection({
   canSpin,
   confettiBurstKey,
   currentChoreName,
+  idleHint,
   isReelSpinning,
   isSpinning,
   message,
@@ -54,12 +56,12 @@ function DoomDomeSection({
   const staticReelUsers =
     users.length > 0
       ? [
-        users[(safeActiveIndex - 2 + users.length) % users.length],
-        users[(safeActiveIndex - 1 + users.length) % users.length],
-        users[safeActiveIndex],
-        users[(safeActiveIndex + 1) % users.length],
-        users[(safeActiveIndex + 2) % users.length],
-      ]
+          users[(safeActiveIndex - 2 + users.length) % users.length],
+          users[(safeActiveIndex - 1 + users.length) % users.length],
+          users[safeActiveIndex],
+          users[(safeActiveIndex + 1) % users.length],
+          users[(safeActiveIndex + 2) % users.length],
+        ]
       : []
 
   return (
@@ -116,7 +118,7 @@ function DoomDomeSection({
                   </AnimatePresence>
                 )
               ) : (
-                <div className="slot-reel__empty">Add users to load the reel</div>
+                <div className="slot-reel__empty">{idleHint ?? 'Add users to load the reel'}</div>
               )}
               <AnimatePresence>
                 {confettiBurstKey > 0 ? (

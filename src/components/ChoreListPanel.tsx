@@ -9,6 +9,7 @@ type ChoreListPanelProps = {
   disabled?: boolean
   onInputChange: (value: string) => void
   onRemove: (id: string) => void
+  onToggleDisabled: (id: string) => void
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
   value: string
 }
@@ -19,6 +20,7 @@ function ChoreListPanel({
   disabled = false,
   onInputChange,
   onRemove,
+  onToggleDisabled,
   onSubmit,
   value,
 }: ChoreListPanelProps) {
@@ -49,30 +51,45 @@ function ChoreListPanel({
         <AnimatePresence>
           {chores.map((chore) => {
             const isAssigned = assignmentsChoreIds.has(chore.id)
+            const statusText = chore.disabled
+              ? 'Disabled for this round'
+              : isAssigned
+                ? 'Assigned this round'
+                : 'Waiting on the wheel'
 
             return (
               <motion.div
                 key={chore.id}
-                className={['list-card', isAssigned ? 'list-card-success' : ''].filter(Boolean).join(' ')}
+                className={['list-card', isAssigned ? 'list-card-success' : '', chore.disabled ? 'list-card-disabled' : '']
+                  .filter(Boolean)
+                  .join(' ')}
                 layout
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-            >
-              <div>
+                exit={{ opacity: 0, y: -12 }}
+              >
+                <div>
                   <strong className="text-stone-900">{chore.name}</strong>
-                  <span className="mt-1 block text-sm text-stone-700/80">
-                    {isAssigned ? 'Assigned this round' : 'Waiting on the wheel'}
-                  </span>
+                  <span className="mt-1 block text-sm text-stone-700/80">{statusText}</span>
                 </div>
-                <button
-                  type="button"
-                  className="dramatic-button dramatic-button-danger dramatic-button-small"
-                  onClick={() => onRemove(chore.id)}
-                  disabled={disabled}
-                >
-                  Remove
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className="dramatic-button dramatic-button-muted dramatic-button-small"
+                    onClick={() => onToggleDisabled(chore.id)}
+                    disabled={disabled}
+                  >
+                    {chore.disabled ? 'Enable' : 'Disable'}
+                  </button>
+                  <button
+                    type="button"
+                    className="dramatic-button dramatic-button-danger dramatic-button-small"
+                    onClick={() => onRemove(chore.id)}
+                    disabled={disabled}
+                  >
+                    Remove
+                  </button>
+                </div>
               </motion.div>
             )
           })}

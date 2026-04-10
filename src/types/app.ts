@@ -1,11 +1,13 @@
 export type User = {
   id: string
   name: string
+  disabled: boolean
 }
 
 export type Chore = {
   id: string
   name: string
+  disabled: boolean
 }
 
 export type Assignment = {

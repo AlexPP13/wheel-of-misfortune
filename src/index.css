@@ -183,6 +183,12 @@
     @apply mt-3 block text-3xl font-black tracking-[-0.04em] text-stone-900;
   }
 
+
+  .list-card-disabled {
+    @apply opacity-70;
+    filter: saturate(0.72);
+  }
+
   .arena-shell {
     @apply relative flex min-h-[28rem] items-center justify-center overflow-hidden rounded-[1.5rem] bg-[#3d260f] px-5 py-8;
     box-shadow: inset 0 0 48px rgba(10, 6, 2, 0.26);

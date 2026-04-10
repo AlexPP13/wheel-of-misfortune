@@ -22,8 +22,24 @@ export function getStoredState(): PersistedState {
     }
 
     const parsed = JSON.parse(raw) as Partial<PersistedState>
-    const users = Array.isArray(parsed.users) ? parsed.users : fallback.users
-    const chores = Array.isArray(parsed.chores) ? parsed.chores : fallback.chores
+    const users = Array.isArray(parsed.users)
+      ? parsed.users
+          .filter((user): user is User => Boolean(user?.id) && Boolean(user?.name))
+          .map((user) => ({
+            id: user.id,
+            name: user.name,
+            disabled: Boolean(user.disabled),
+          }))
+      : fallback.users
+    const chores = Array.isArray(parsed.chores)
+      ? parsed.chores
+          .filter((chore): chore is PersistedState['chores'][number] => Boolean(chore?.id) && Boolean(chore?.name))
+          .map((chore) => ({
+            id: chore.id,
+            name: chore.name,
+            disabled: Boolean(chore.disabled),
+          }))
+      : fallback.chores
     const assignments = Array.isArray(parsed.assignments) ? parsed.assignments : []
     const incomingCounts = parsed.historyCounts ?? {}
 
@@ -40,6 +56,10 @@ export function getStoredState(): PersistedState {
 }
 
 export function chooseFairestUser(users: User[], counts: HistoryStats) {
+  if (users.length === 0) {
+    throw new Error('Cannot choose from an empty user list')
+  }
+
   const lowestCount = Math.min(...users.map((user) => counts[user.id] ?? 0))
   const highestCount = Math.max(...users.map((user) => counts[user.id] ?? 0))
   const spread = highestCount - lowestCount
