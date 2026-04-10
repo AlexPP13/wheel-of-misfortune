@@ -25,6 +25,7 @@ function App() {
   const [userName, setUserName] = useState('')
   const [choreName, setChoreName] = useState('')
   const [isSpinning, setIsSpinning] = useState(false)
+  const [isReelSpinning, setIsReelSpinning] = useState(false)
   const [activeUserId, setActiveUserId] = useState<string | null>(null)
   const [currentChoreId, setCurrentChoreId] = useState<string | null>(null)
   const [activeView, setActiveView] = useState<AppView>('users')
@@ -127,6 +128,7 @@ function App() {
     }
 
     setIsSpinning(true)
+    setIsReelSpinning(true)
     setMessage('⚡ The arena awakens. Lights flash. Fate starts screaming...')
 
     let nextCounts = { ...historyCounts }
@@ -134,6 +136,7 @@ function App() {
 
     for (const chore of remainingChores) {
       setCurrentChoreId(chore.id)
+      setIsReelSpinning(true)
       setMessage(`🎯 ${chore.name} enters the thunder dome. Choose wisely, cruel machine.`)
 
       for (let tick = 0; tick < 12; tick += 1) {
@@ -144,6 +147,7 @@ function App() {
 
       const chosenUser = chooseFairestUser(users, nextCounts)
       setActiveUserId(chosenUser.id)
+      setIsReelSpinning(false)
 
       const nextAssignment = { choreId: chore.id, userId: chosenUser.id }
       producedAssignments.push(nextAssignment)
@@ -161,6 +165,7 @@ function App() {
 
     setCurrentChoreId(null)
     setIsSpinning(false)
+    setIsReelSpinning(false)
     setMessage(
       producedAssignments.length > 0
         ? '👑 The wheel has spoken. Every chore has found its doomed star.'
@@ -173,6 +178,7 @@ function App() {
     setCurrentChoreId(null)
     setActiveUserId(null)
     setIsSpinning(false)
+    setIsReelSpinning(false)
     setMessage('Round wiped clean. The crowd demands another overproduced catastrophe.')
   }
 
@@ -188,6 +194,7 @@ function App() {
     setCurrentChoreId(null)
     setActiveUserId(null)
     setIsSpinning(false)
+    setIsReelSpinning(false)
     setMessage('Everything has been reset. New victims. New chores. Same glorious chaos.')
   }
 
@@ -274,6 +281,7 @@ function App() {
           canSpin={canSpin}
           currentChoreName={currentChoreName}
           isSpinning={isSpinning}
+          isReelSpinning={isReelSpinning}
           message={message}
           onEditChores={() => setActiveView('chores')}
           onEditUsers={() => setActiveView('users')}

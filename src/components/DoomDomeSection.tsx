@@ -7,6 +7,7 @@ type DoomDomeSectionProps = {
   activeUserId: string | null
   canSpin: boolean
   currentChoreName: string
+  isReelSpinning: boolean
   isSpinning: boolean
   message: string
   onEditChores: () => void
@@ -21,6 +22,7 @@ function DoomDomeSection({
   activeUserId,
   canSpin,
   currentChoreName,
+  isReelSpinning,
   isSpinning,
   message,
   onEditChores,
@@ -72,10 +74,10 @@ function DoomDomeSection({
         <div className="arena-core">
           <motion.div
             className="spotlight-chip"
-            animate={isSpinning ? { scale: [1, 1.08, 1], opacity: [0.75, 1, 0.75] } : { scale: 1, opacity: 1 }}
-            transition={{ duration: 0.95, repeat: isSpinning ? Infinity : 0 }}
+            animate={isReelSpinning ? { scale: [1, 1.08, 1], opacity: [0.75, 1, 0.75] } : { scale: 1, opacity: 1 }}
+            transition={{ duration: 0.95, repeat: isReelSpinning ? Infinity : 0 }}
           >
-            {isSpinning ? 'SCANNING FOR A VOLUNTEER' : 'READY FOR A SPIN'}
+            {isReelSpinning ? 'SCANNING FOR A VOLUNTEER' : 'READY FOR A SPIN'}
           </motion.div>
 
           <div className="mt-6 w-full max-w-md text-center">
@@ -98,7 +100,7 @@ function DoomDomeSection({
               <div className="slot-machine-window">
                 <div className="slot-machine-window__mask" />
                 {users.length > 0 ? (
-                  isSpinning ? (
+                  isReelSpinning ? (
                     <div className="slot-reel slot-reel-spinning">
                       {spinningReelUsers.map((user, index) => (
                         <div key={`${user.id}-${index}`} className="slot-reel__item">
