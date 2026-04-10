@@ -34,7 +34,7 @@ function ChoreListPanel({
         <span className="count-pill">{chores.length}</span>
       </div>
 
-      <form className="mb-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]" onSubmit={onSubmit}>
+      <form className="mb-4 grid gap-3 sm:grid-cols-[1fr_auto]" onSubmit={onSubmit}>
         <input
           className="dramatic-input"
           value={value}
