@@ -1,24 +1,33 @@
 import { AnimatePresence, motion } from 'framer-motion'
 
-import { getUserAura } from '../lib/app-state'
-import type { HistoryStats, User } from '../types/app'
+import type { User } from '../types/app'
 import { panelMotion } from './panelMotion'
 
 type DoomDomeSectionProps = {
   activeUserId: string | null
+  canSpin: boolean
   currentChoreName: string
-  fairnessRank: Record<string, number>
-  historyCounts: HistoryStats
   isSpinning: boolean
+  message: string
+  onEditChores: () => void
+  onEditUsers: () => void
+  onResetEverything: () => void
+  onResetRound: () => void
+  onRunSpin: () => void
   users: User[]
 }
 
 function DoomDomeSection({
   activeUserId,
+  canSpin,
   currentChoreName,
-  fairnessRank,
-  historyCounts,
   isSpinning,
+  message,
+  onEditChores,
+  onEditUsers,
+  onResetEverything,
+  onResetRound,
+  onRunSpin,
   users,
 }: DoomDomeSectionProps) {
   const activeUser = activeUserId ? users.find((user) => user.id === activeUserId) ?? null : null
@@ -52,8 +61,8 @@ function DoomDomeSection({
             className="spotlight-chip"
             animate={isSpinning ? { scale: [1, 1.08, 1], opacity: [0.75, 1, 0.75] } : { scale: 1, opacity: 1 }}
             transition={{ duration: 0.95, repeat: isSpinning ? Infinity : 0 }}
-          >
-            {isSpinning ? 'SCANNING FOR A VOLUNTEER' : 'READY FOR IMPACT'}
+            >
+            {isSpinning ? 'SCANNING FOR A VOLUNTEER' : 'READY FOR A SPIN'}
           </motion.div>
 
           <AnimatePresence mode="wait">
@@ -76,84 +85,27 @@ function DoomDomeSection({
               </p>
             </motion.div>
           </AnimatePresence>
+
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <button className="dramatic-button dramatic-button-primary" onClick={onRunSpin} disabled={!canSpin}>
+              {isSpinning ? 'Spinning...' : 'Spin wheel'}
+            </button>
+            <button className="dramatic-button dramatic-button-muted" onClick={onResetRound} disabled={isSpinning}>
+              Reset round
+            </button>
+            <button className="dramatic-button dramatic-button-muted" onClick={onEditUsers} disabled={isSpinning}>
+              Edit users
+            </button>
+            <button className="dramatic-button dramatic-button-muted" onClick={onEditChores} disabled={isSpinning}>
+              Edit chores
+            </button>
+            <button className="dramatic-button dramatic-button-danger" onClick={onResetEverything} disabled={isSpinning}>
+              Reset all
+            </button>
+          </div>
+
+          <p className="mt-4 max-w-xl text-center text-sm text-amber-100/72">{message}</p>
         </div>
-      </div>
-
-      <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <AnimatePresence>
-          {users.length > 0 ? (
-            users.map((user, index) => {
-              const isActive = activeUserId === user.id
-              const choresTaken = historyCounts[user.id] ?? 0
-
-              return (
-                <motion.article
-                  key={user.id}
-                  className={[
-                    'contestant-card',
-                    isActive ? 'contestant-card-active' : '',
-                    `bg-gradient-to-br ${getUserAura(index)}`,
-                  ]
-                    .filter(Boolean)
-                    .join(' ')}
-                  layout
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={
-                    isActive
-                      ? {
-                          opacity: 1,
-                          y: 0,
-                          scale: [1, 1.04, 1.01],
-                          boxShadow: [
-                            '0 0 0 rgba(255,255,255,0)',
-                            '0 0 50px rgba(249,115,22,0.35)',
-                            '0 0 26px rgba(168,85,247,0.28)',
-                          ],
-                        }
-                      : { opacity: 1, y: 0, scale: 1 }
-                  }
-                  transition={{ duration: 0.45 }}
-                >
-                  <div className="contestant-card__overlay" />
-                  <div className="relative z-10 flex h-full flex-col justify-between gap-5">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-[0.65rem] font-semibold uppercase tracking-[0.35em] text-amber-950/55">
-                          Player {String(index + 1).padStart(2, '0')}
-                        </p>
-                        <h3 className="mt-3 text-2xl font-black uppercase tracking-[-0.03em] text-stone-900">
-                          {user.name}
-                        </h3>
-                      </div>
-                      <motion.span
-                        className="rounded-full border border-amber-900/30 bg-amber-50/60 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-amber-950/90"
-                        animate={isActive ? { y: [-1, -6, -1] } : { y: 0 }}
-                        transition={{ duration: 0.8, repeat: isActive ? Infinity : 0 }}
-                      >
-                        {isActive ? 'Selected' : 'Waiting'}
-                      </motion.span>
-                    </div>
-
-                    <div className="space-y-2 text-sm text-stone-800/82">
-                      <div className="flex items-center justify-between rounded-2xl border border-amber-900/20 bg-amber-50/50 px-3 py-2">
-                        <span>Total chores survived</span>
-                        <strong className="text-stone-950">{choresTaken}</strong>
-                      </div>
-                      <div className="flex items-center justify-between rounded-2xl border border-amber-900/20 bg-amber-50/50 px-3 py-2">
-                        <span>Fairness rank</span>
-                        <strong className="text-stone-950">#{fairnessRank[user.id] ?? users.length}</strong>
-                      </div>
-                    </div>
-                  </div>
-                </motion.article>
-              )
-            })
-          ) : (
-            <motion.div className="empty-state md:col-span-2 xl:col-span-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              Add a user and the wheel ledger will list every entrant.
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
     </motion.div>
   )
