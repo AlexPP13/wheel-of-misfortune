@@ -39,14 +39,14 @@ function EditableListPanel({
   tone = 'fuchsia',
   value,
 }: EditableListPanelProps) {
-  const labelClass = tone === 'orange' ? 'text-orange-200/65' : 'text-fuchsia-200/65'
+  const labelClass = tone === 'orange' ? 'text-amber-800/70' : 'text-stone-700/75'
 
   return (
     <div className="glass-panel p-6">
       <div className="mb-5 flex items-center justify-between">
         <div>
           <p className={`text-xs font-semibold uppercase tracking-[0.3em] ${labelClass}`}>{panelLabel}</p>
-          <h2 className="mt-2 text-2xl font-black uppercase tracking-[-0.03em] text-white">{title}</h2>
+          <h2 className="mt-2 text-2xl font-black uppercase tracking-[-0.03em] text-stone-900">{title}</h2>
         </div>
         <span className="count-pill">{count}</span>
       </div>
@@ -76,8 +76,8 @@ function EditableListPanel({
               exit={{ opacity: 0, y: -12 }}
             >
               <div>
-                <strong className="text-white">{item.name}</strong>
-                <span className="mt-1 block text-sm text-white/62">{item.meta}</span>
+                <strong className="text-stone-900">{item.name}</strong>
+                <span className="mt-1 block text-sm text-stone-700/80">{item.meta}</span>
               </div>
               <button
                 type="button"

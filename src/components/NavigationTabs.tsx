@@ -18,10 +18,10 @@ function NavigationTabs({ activeView, items, onChange }: NavigationTabsProps) {
     <nav className="glass-panel mb-6 p-3 sm:p-4" aria-label="Wizard steps">
       <div className="mb-4 flex items-center justify-between gap-4 px-2">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.32em] text-white/52">Setup flow</p>
-          <h2 className="mt-2 text-2xl font-black uppercase tracking-[-0.03em] text-white">Wheel wizard</h2>
+          <p className="text-xs font-semibold uppercase tracking-[0.32em] text-stone-700/75">Setup flow</p>
+          <h2 className="mt-2 text-2xl font-black uppercase tracking-[-0.03em] text-stone-900">Wheel wizard</h2>
         </div>
-        <p className="max-w-sm text-right text-sm text-white/60">
+        <p className="max-w-sm text-right text-sm text-stone-700/80">
           Follow the steps in order, or jump back to edit any part of the round.
         </p>
       </div>

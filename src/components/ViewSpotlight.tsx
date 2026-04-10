@@ -20,9 +20,9 @@ type ViewSpotlightProps = {
 function ViewSpotlight({ actions = [], description, eyebrow, stats, title }: ViewSpotlightProps) {
   return (
     <section className="glass-panel p-6">
-      <p className="text-xs font-semibold uppercase tracking-[0.32em] text-cyan-200/60">{eyebrow}</p>
-      <h2 className="mt-3 max-w-xl text-3xl font-black uppercase tracking-[-0.03em] text-white">{title}</h2>
-      <p className="mt-4 max-w-2xl text-sm leading-7 text-white/72 sm:text-base">{description}</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.32em] text-amber-800/75">{eyebrow}</p>
+      <h2 className="mt-3 max-w-xl text-3xl font-black uppercase tracking-[-0.03em] text-stone-900">{title}</h2>
+      <p className="mt-4 max-w-2xl text-sm leading-7 text-stone-700/85 sm:text-base">{description}</p>
 
       {actions.length > 0 ? (
         <div className="mt-6 flex flex-wrap gap-3">

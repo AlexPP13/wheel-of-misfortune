@@ -26,8 +26,8 @@ function ChoreListPanel({
     <div className="glass-panel p-6">
       <div className="mb-5 flex items-center justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-orange-200/65">Threat queue</p>
-          <h2 className="mt-2 text-2xl font-black uppercase tracking-[-0.03em] text-white">Chores</h2>
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-amber-800/70">Wheel queue</p>
+          <h2 className="mt-2 text-2xl font-black uppercase tracking-[-0.03em] text-stone-900">Chores</h2>
         </div>
         <span className="count-pill">{chores.length}</span>
       </div>
@@ -57,12 +57,12 @@ function ChoreListPanel({
                 layout
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -12 }}
-              >
-                <div>
-                  <strong className="text-white">{chore.name}</strong>
-                  <span className="mt-1 block text-sm text-white/62">
-                    {isAssigned ? 'Assigned this round' : 'Waiting in the blast radius'}
+              exit={{ opacity: 0, y: -12 }}
+            >
+              <div>
+                  <strong className="text-stone-900">{chore.name}</strong>
+                  <span className="mt-1 block text-sm text-stone-700/80">
+                    {isAssigned ? 'Assigned this round' : 'Waiting on the wheel'}
                   </span>
                 </div>
                 <button

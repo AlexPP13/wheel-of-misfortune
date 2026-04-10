@@ -64,11 +64,11 @@ export function chooseFairestUser(users: User[], counts: HistoryStats) {
 
 export function getUserAura(index: number) {
   const auras = [
-    'from-fuchsia-500/40 via-orange-400/25 to-yellow-300/20',
-    'from-cyan-400/35 via-blue-500/20 to-violet-500/25',
-    'from-emerald-400/35 via-lime-300/20 to-yellow-300/25',
-    'from-rose-500/35 via-pink-400/25 to-fuchsia-400/20',
-    'from-purple-500/35 via-indigo-400/20 to-sky-300/25',
+    'contestant-card-theme-amber',
+    'contestant-card-theme-ivory',
+    'contestant-card-theme-olive',
+    'contestant-card-theme-copper',
+    'contestant-card-theme-slate',
   ]
 
   return auras[index % auras.length]

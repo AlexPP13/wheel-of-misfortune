@@ -12,8 +12,8 @@ function AssignmentsPanel({ assignmentRows }: AssignmentsPanelProps) {
     <motion.div className="glass-panel p-6" initial="hidden" animate="visible" variants={panelMotion}>
       <div className="mb-5 flex items-center justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-yellow-200/65">Aftermath</p>
-          <h2 className="mt-2 text-2xl font-black uppercase tracking-[-0.03em] text-white">This round</h2>
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-amber-800/75">Round ledger</p>
+          <h2 className="mt-2 text-2xl font-black uppercase tracking-[-0.03em] text-stone-900">This round</h2>
         </div>
         <span className="count-pill">{assignmentRows.length}</span>
       </div>
@@ -30,15 +30,15 @@ function AssignmentsPanel({ assignmentRows }: AssignmentsPanelProps) {
                 transition={{ delay: index * 0.05 }}
               >
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/44">Assigned doom</p>
-                  <strong className="mt-2 block text-lg text-white">{assignment.choreName}</strong>
+                  <p className="text-xs font-semibold uppercase tracking-[0.28em] text-stone-700/70">Assigned chore</p>
+                  <strong className="mt-2 block text-lg text-stone-900">{assignment.choreName}</strong>
                 </div>
                 <div className="assignment-winner">{assignment.userName}</div>
               </motion.div>
             ))
           ) : (
             <motion.div className="empty-state" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              No assignments yet. Press the big dramatic button.
+              No assignments yet. Spin the wheel when the setup is ready.
             </motion.div>
           )}
         </AnimatePresence>

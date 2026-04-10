@@ -27,11 +27,11 @@ function DoomDomeSection({
     <motion.div className="stage-panel overflow-hidden p-5 sm:p-6" initial="hidden" animate="visible" variants={panelMotion}>
       <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-fuchsia-200/65">Main event</p>
-          <h2 className="mt-2 text-3xl font-black uppercase tracking-[-0.03em] text-white sm:text-4xl">The doom dome</h2>
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-amber-300/65">Main wheel</p>
+          <h2 className="mt-2 text-3xl font-black uppercase tracking-[-0.03em] text-amber-50 sm:text-4xl">The prize wheel</h2>
         </div>
-        <div className="rounded-full border border-white/12 bg-white/8 px-4 py-2 text-sm font-semibold text-white/86">
-          Current chore: <span className="text-yellow-200">{currentChoreName}</span>
+        <div className="rounded-full border border-amber-900/50 bg-amber-950/35 px-4 py-2 text-sm font-semibold text-amber-50/86">
+          Current chore: <span className="text-amber-200">{currentChoreName}</span>
         </div>
       </div>
 
@@ -66,13 +66,13 @@ function DoomDomeSection({
               transition={{ duration: 0.35 }}
             >
               <p className="text-xs font-semibold uppercase tracking-[0.4em] text-white/45">Now threatening</p>
-              <h3 className="mt-4 text-4xl font-black uppercase tracking-[-0.04em] text-white sm:text-5xl">
+              <h3 className="mt-4 text-4xl font-black uppercase tracking-[-0.04em] text-amber-50 sm:text-5xl">
                 {currentChoreName}
               </h3>
-              <p className="mt-4 text-sm text-white/72 sm:text-base">
+              <p className="mt-4 text-sm text-amber-100/72 sm:text-base">
                 {activeUser
-                  ? `${activeUser.name} is currently in the spotlight.`
-                  : 'Spin the machine and let the lasers decide.'}
+                  ? `${activeUser.name} is currently under the pointer.`
+                  : 'Spin the wheel and let the pointer settle.'}
               </p>
             </motion.div>
           </AnimatePresence>
@@ -118,30 +118,30 @@ function DoomDomeSection({
                   <div className="relative z-10 flex h-full flex-col justify-between gap-5">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-[0.65rem] font-semibold uppercase tracking-[0.35em] text-white/60">
-                          Contestant {String(index + 1).padStart(2, '0')}
+                        <p className="text-[0.65rem] font-semibold uppercase tracking-[0.35em] text-amber-950/55">
+                          Player {String(index + 1).padStart(2, '0')}
                         </p>
-                        <h3 className="mt-3 text-2xl font-black uppercase tracking-[-0.03em] text-white">
+                        <h3 className="mt-3 text-2xl font-black uppercase tracking-[-0.03em] text-stone-900">
                           {user.name}
                         </h3>
                       </div>
                       <motion.span
-                        className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-white/90"
+                        className="rounded-full border border-amber-900/30 bg-amber-50/60 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-amber-950/90"
                         animate={isActive ? { y: [-1, -6, -1] } : { y: 0 }}
                         transition={{ duration: 0.8, repeat: isActive ? Infinity : 0 }}
                       >
-                        {isActive ? 'Chosen?' : 'Waiting'}
+                        {isActive ? 'Selected' : 'Waiting'}
                       </motion.span>
                     </div>
 
-                    <div className="space-y-2 text-sm text-white/82">
-                      <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-black/18 px-3 py-2">
+                    <div className="space-y-2 text-sm text-stone-800/82">
+                      <div className="flex items-center justify-between rounded-2xl border border-amber-900/20 bg-amber-50/50 px-3 py-2">
                         <span>Total chores survived</span>
-                        <strong className="text-white">{choresTaken}</strong>
+                        <strong className="text-stone-950">{choresTaken}</strong>
                       </div>
-                      <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-black/18 px-3 py-2">
+                      <div className="flex items-center justify-between rounded-2xl border border-amber-900/20 bg-amber-50/50 px-3 py-2">
                         <span>Fairness rank</span>
-                        <strong className="text-white">#{fairnessRank[user.id] ?? users.length}</strong>
+                        <strong className="text-stone-950">#{fairnessRank[user.id] ?? users.length}</strong>
                       </div>
                     </div>
                   </div>
@@ -150,7 +150,7 @@ function DoomDomeSection({
             })
           ) : (
             <motion.div className="empty-state md:col-span-2 xl:col-span-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              Add a user and the arena will conjure contender cards.
+              Add a user and the wheel ledger will list every entrant.
             </motion.div>
           )}
         </AnimatePresence>
