@@ -60,17 +60,6 @@ function DoomDomeSection({
       </div>
 
       <div className="arena-shell">
-        <motion.div
-          className="arena-ring arena-ring-outer"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 24, repeat: Infinity, ease: 'linear' }}
-        />
-        <motion.div
-          className="arena-ring arena-ring-inner"
-          animate={{ rotate: -360 }}
-          transition={{ duration: 16, repeat: Infinity, ease: 'linear' }}
-        />
-
         <div className="arena-core">
           <motion.div
             className="spotlight-chip"
@@ -96,7 +85,6 @@ function DoomDomeSection({
             </AnimatePresence>
 
             <div className="slot-machine-shell mt-6">
-              <div className="slot-machine-lights" />
               <div className="slot-machine-window">
                 <div className="slot-machine-window__mask" />
                 {users.length > 0 ? (

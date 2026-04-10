@@ -188,58 +188,32 @@
   }
 
   .arena-shell {
-    @apply relative flex min-h-[28rem] items-center justify-center overflow-hidden rounded-[1.7rem] border border-[#6c4720] bg-[#3d260f] px-5 py-8;
-    box-shadow: inset 0 0 70px rgba(10, 6, 2, 0.32);
-  }
-
-  .arena-ring {
-    @apply absolute rounded-full border;
-  }
-
-  .arena-ring-outer {
-    width: min(36rem, 82vw);
-    height: min(36rem, 82vw);
-    border-color: rgba(194, 146, 56, 0.32);
-    border-style: solid;
-    box-shadow: 0 0 28px rgba(194, 146, 56, 0.16);
-  }
-
-  .arena-ring-inner {
-    width: min(25rem, 58vw);
-    height: min(25rem, 58vw);
-    border-color: rgba(237, 223, 180, 0.22);
-    box-shadow: inset 0 0 40px rgba(236, 217, 161, 0.08), 0 0 24px rgba(194, 146, 56, 0.12);
+    @apply relative flex min-h-[28rem] items-center justify-center overflow-hidden rounded-[1.5rem] bg-[#3d260f] px-5 py-8;
+    box-shadow: inset 0 0 48px rgba(10, 6, 2, 0.26);
   }
 
   .arena-core {
-    @apply relative z-10 flex min-h-[18rem] w-full max-w-xl flex-col items-center justify-center rounded-[2rem] border border-[#8e652f] bg-[radial-gradient(circle,rgba(255,235,179,0.12),rgba(83,55,20,0.06)_45%,transparent_70%)] px-8 py-10 text-center;
+    @apply relative z-10 flex min-h-[18rem] w-full max-w-xl flex-col items-center justify-center rounded-[1.4rem] bg-[linear-gradient(180deg,rgba(71,44,19,0.94),rgba(40,24,10,0.98))] px-8 py-10 text-center;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 235, 179, 0.08),
+      0 12px 26px rgba(12, 7, 2, 0.2);
   }
 
   .spotlight-chip {
-    @apply rounded-full border border-[#8d662c] bg-[#f1ddb0] px-4 py-2 text-[0.7rem] font-bold uppercase tracking-[0.34em] text-[#533417];
+    @apply rounded-full bg-[#ead19a] px-4 py-2 text-[0.7rem] font-bold uppercase tracking-[0.34em] text-[#533417];
   }
 
   .slot-machine-shell {
-    @apply relative overflow-hidden rounded-[1.6rem] border border-[#a77832] bg-[linear-gradient(180deg,#6d451d_0%,#3c240e_100%)] p-4;
+    @apply relative overflow-hidden rounded-[1.1rem] bg-[#2a1809] p-3;
     box-shadow:
-      inset 0 1px 0 rgba(255, 241, 200, 0.28),
-      inset 0 0 0 3px rgba(227, 186, 101, 0.12),
-      0 18px 36px rgba(12, 7, 2, 0.28);
-  }
-
-  .slot-machine-lights {
-    @apply pointer-events-none absolute inset-x-4 top-3 h-3 rounded-full;
-    background:
-      radial-gradient(circle, rgba(250, 224, 153, 0.95) 0 38%, transparent 42%) left center/2.2rem 100% repeat-x;
-    opacity: 0.95;
+      inset 0 1px 0 rgba(255, 241, 200, 0.12),
+      0 10px 24px rgba(12, 7, 2, 0.2);
   }
 
   .slot-machine-window {
-    @apply relative mt-4 overflow-hidden rounded-[1.2rem] border border-[#8f6329] bg-[#201308];
+    @apply relative overflow-hidden rounded-[0.95rem] bg-[#201308];
     height: 380px;
-    box-shadow:
-      inset 0 0 0 2px rgba(237, 209, 146, 0.08),
-      inset 0 18px 24px rgba(0, 0, 0, 0.32);
+    box-shadow: inset 0 18px 24px rgba(0, 0, 0, 0.32);
   }
 
   .slot-machine-window__mask {
@@ -250,10 +224,9 @@
   }
 
   .slot-machine-pointer {
-    @apply pointer-events-none absolute inset-x-3 top-1/2 z-20 h-[76px] -translate-y-1/2 rounded-[1rem] border-2 border-[#f2cb73];
+    @apply pointer-events-none absolute inset-x-3 top-1/2 z-20 h-[76px] -translate-y-1/2 rounded-[0.8rem] border border-[#f2cb73];
     box-shadow:
-      inset 0 0 0 1px rgba(255, 247, 221, 0.35),
-      0 0 24px rgba(242, 203, 115, 0.2);
+      0 0 16px rgba(242, 203, 115, 0.14);
   }
 
   .slot-reel {
