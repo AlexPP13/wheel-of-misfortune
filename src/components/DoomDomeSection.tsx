@@ -44,7 +44,7 @@ function DoomDomeSection({
   return (
     <motion.div className="stage-panel overflow-hidden p-5 sm:p-6" initial="hidden" animate="visible" variants={panelMotion}>
       <div className="arena-shell">
-        <div className="mt-6 w-full max-w-md text-center">
+        <div className="mt-6 w-full text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.4em] text-amber-100/55">Current chore</p>
           <AnimatePresence mode="wait">
             <motion.h3

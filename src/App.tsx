@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useMemo, useState } from 'react'
+import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import AppShell from './components/AppShell'
 import AssignmentsPanel from './components/AssignmentsPanel'
 import ChoreListPanel from './components/ChoreListPanel'
@@ -11,11 +11,13 @@ import {
   createDefaultState,
   getStoredState,
 } from './lib/app-state'
+import { CarnivalAudio } from './lib/carnivalAudio'
 import type { Assignment, Chore, HistoryStats, PersistedState, User } from './types/app'
 
 type AppView = 'play' | 'chores' | 'users'
 
 function App() {
+  const carnivalAudioRef = useRef<CarnivalAudio | null>(null)
   const [initialState] = useState<PersistedState>(() => getStoredState())
   const [users, setUsers] = useState<User[]>(initialState.users)
   const [chores, setChores] = useState<Chore[]>(initialState.chores)
@@ -41,6 +43,13 @@ function App() {
       JSON.stringify({ users, chores, assignments, historyCounts: sanitizedCounts }),
     )
   }, [users, chores, assignments, historyCounts])
+
+  useEffect(() => {
+    return () => {
+      void carnivalAudioRef.current?.dispose()
+      carnivalAudioRef.current = null
+    }
+  }, [])
 
   const assignmentRows = useMemo(() => {
     return assignments
@@ -126,6 +135,10 @@ function App() {
       return
     }
 
+    if (!carnivalAudioRef.current) {
+      carnivalAudioRef.current = new CarnivalAudio()
+    }
+
     setIsSpinning(true)
     setIsReelSpinning(true)
     setMessage('⚡ The arena awakens. Lights flash. Fate starts screaming...')
@@ -133,46 +146,53 @@ function App() {
     let nextCounts = { ...historyCounts }
     const producedAssignments: Assignment[] = []
 
-    for (const chore of remainingChores) {
-      setCurrentChoreId(chore.id)
-      setIsReelSpinning(true)
-      setMessage(`🎯 ${chore.name} enters the thunder dome. Choose wisely, cruel machine.`)
+    try {
+      for (const chore of remainingChores) {
+        setCurrentChoreId(chore.id)
+        setIsReelSpinning(true)
+        setMessage(`🎯 ${chore.name} enters the thunder dome. Choose wisely, cruel machine.`)
+        await carnivalAudioRef.current.start()
 
-      for (let tick = 0; tick < 12; tick += 1) {
-        const highlighted = users[tick % users.length]
-        setActiveUserId(highlighted.id)
-        await new Promise((resolve) => window.setTimeout(resolve, 85 + tick * 16))
+        for (let tick = 0; tick < 12; tick += 1) {
+          const highlighted = users[tick % users.length]
+          setActiveUserId(highlighted.id)
+          await new Promise((resolve) => window.setTimeout(resolve, 85 + tick * 16))
+        }
+
+        const chosenUser = chooseFairestUser(users, nextCounts)
+        setActiveUserId(chosenUser.id)
+        setIsReelSpinning(false)
+        carnivalAudioRef.current?.stop()
+        await carnivalAudioRef.current?.playBell()
+
+        const nextAssignment = { choreId: chore.id, userId: chosenUser.id }
+        producedAssignments.push(nextAssignment)
+        nextCounts = {
+          ...nextCounts,
+          [chosenUser.id]: (nextCounts[chosenUser.id] ?? 0) + 1,
+        }
+
+        setAssignments((current) => [...current, nextAssignment])
+        setHistoryCounts(nextCounts)
+        setMessage(`🔥 ${chosenUser.name} has been dramatically volunteered for ${chore.name}.`)
+
+        await new Promise((resolve) => window.setTimeout(resolve, 650))
       }
-
-      const chosenUser = chooseFairestUser(users, nextCounts)
-      setActiveUserId(chosenUser.id)
+    } finally {
+      carnivalAudioRef.current?.stop()
+      setCurrentChoreId(null)
+      setIsSpinning(false)
       setIsReelSpinning(false)
-
-      const nextAssignment = { choreId: chore.id, userId: chosenUser.id }
-      producedAssignments.push(nextAssignment)
-      nextCounts = {
-        ...nextCounts,
-        [chosenUser.id]: (nextCounts[chosenUser.id] ?? 0) + 1,
-      }
-
-      setAssignments((current) => [...current, nextAssignment])
-      setHistoryCounts(nextCounts)
-      setMessage(`🔥 ${chosenUser.name} has been dramatically volunteered for ${chore.name}.`)
-
-      await new Promise((resolve) => window.setTimeout(resolve, 650))
+      setMessage(
+        producedAssignments.length > 0
+          ? '👑 The wheel has spoken. Every chore has found its doomed star.'
+          : 'Nothing left to assign this round.',
+      )
     }
-
-    setCurrentChoreId(null)
-    setIsSpinning(false)
-    setIsReelSpinning(false)
-    setMessage(
-      producedAssignments.length > 0
-        ? '👑 The wheel has spoken. Every chore has found its doomed star.'
-        : 'Nothing left to assign this round.',
-    )
   }
 
   const resetRound = () => {
+    carnivalAudioRef.current?.stop()
     setAssignments([])
     setCurrentChoreId(null)
     setActiveUserId(null)
@@ -182,6 +202,7 @@ function App() {
   }
 
   const resetEverything = () => {
+    carnivalAudioRef.current?.stop()
     localStorage.removeItem(STORAGE_KEY)
     const freshState = createDefaultState()
 
