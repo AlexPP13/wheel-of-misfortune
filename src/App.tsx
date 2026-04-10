@@ -8,8 +8,7 @@ import NavigationTabs from './components/NavigationTabs'
 import {
   STORAGE_KEY,
   chooseFairestUser,
-  createDefaultChores,
-  createDefaultUsers,
+  createDefaultState,
   getStoredState,
 } from './lib/app-state'
 import type { Assignment, Chore, HistoryStats, PersistedState, User } from './types/app'
@@ -184,18 +183,17 @@ function App() {
 
   const resetEverything = () => {
     localStorage.removeItem(STORAGE_KEY)
-    const freshUsers = createDefaultUsers()
-    const freshChores = createDefaultChores()
+    const freshState = createDefaultState()
 
-    setUsers(freshUsers)
-    setChores(freshChores)
-    setAssignments([])
-    setHistoryCounts(Object.fromEntries(freshUsers.map((user) => [user.id, 0])))
+    setUsers(freshState.users)
+    setChores(freshState.chores)
+    setAssignments(freshState.assignments)
+    setHistoryCounts(freshState.historyCounts)
     setCurrentChoreId(null)
     setActiveUserId(null)
     setIsSpinning(false)
     setIsReelSpinning(false)
-    setMessage('Everything has been reset. New victims. New chores. Same glorious chaos.')
+    setMessage('Everything has been reset. The arena is empty until you add users and chores.')
   }
 
   const currentChoreName = currentChoreId

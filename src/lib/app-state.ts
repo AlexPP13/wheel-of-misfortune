@@ -2,28 +2,12 @@ import type { HistoryStats, PersistedState, User } from '../types/app'
 
 export const STORAGE_KEY = 'wheel-of-unfortune-state'
 
-export const createDefaultUsers = () => [
-  { id: crypto.randomUUID(), name: 'Alex' },
-  { id: crypto.randomUUID(), name: 'Sam' },
-  { id: crypto.randomUUID(), name: 'Jordan' },
-]
-
-export const createDefaultChores = () => [
-  { id: crypto.randomUUID(), name: 'Dishes' },
-  { id: crypto.randomUUID(), name: 'Vacuum' },
-  { id: crypto.randomUUID(), name: 'Laundry' },
-  { id: crypto.randomUUID(), name: 'Trash' },
-]
-
 export function createDefaultState(): PersistedState {
-  const users = createDefaultUsers()
-  const chores = createDefaultChores()
-
   return {
-    users,
-    chores,
+    users: [],
+    chores: [],
     assignments: [],
-    historyCounts: Object.fromEntries(users.map((user) => [user.id, 0])),
+    historyCounts: {},
   }
 }
 
