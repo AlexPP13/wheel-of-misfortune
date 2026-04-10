@@ -387,7 +387,7 @@
   }
 
   .assignment-card__body {
-    @apply grid gap-2 rounded-[0.95rem] border border-[#b38c53]/55 bg-[#f8edd1]/80 p-2.5 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] sm:items-start;
+    @apply grid gap-2 rounded-[0.95rem] border border-[#b38c53]/55 bg-[#f8edd1]/80 p-2.5 sm:grid-cols-[minmax(0, 1fr)_minmax(0, 1fr)] sm:items-start;
   }
 
   .assignment-card__person {
@@ -423,7 +423,7 @@
 }
 
 #root {
-  width: min(1400px, 100%);
+  width: 100%;
   margin: 0 auto;
   min-height: 100vh;
 }
