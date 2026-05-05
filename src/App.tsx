@@ -8,7 +8,7 @@ import FairnessRadar from './components/FairnessRadar'
 import NavigationTabs, { type NavigationView } from './components/NavigationTabs'
 import {
   STORAGE_KEY,
-  chooseFairestUser,
+  chooseFairestAssignments,
   createDefaultState,
   getStoredState,
 } from './lib/app-state'
@@ -223,8 +223,15 @@ function App() {
 
     let nextCounts = { ...historyCounts }
     let nextChoreCounts = { ...choreHistoryCounts }
+    const roundAssignments = chooseFairestAssignments(
+      remainingChores,
+      enabledUsers,
+      nextCounts,
+      nextChoreCounts,
+      assignments,
+      enabledChores,
+    )
     const producedAssignments: Assignment[] = []
-    const assignedUserIds = new Set(assignments.map((assignment) => assignment.userId))
 
     try {
       for (const chore of remainingChores) {
@@ -239,19 +246,19 @@ function App() {
           await new Promise((resolve) => window.setTimeout(resolve, 85 + tick * 16))
         }
 
-        const eligibleUsers =
-          assignedUserIds.size < enabledUsers.length
-            ? enabledUsers.filter((user) => !assignedUserIds.has(user.id))
-            : enabledUsers
-        const chosenUser = chooseFairestUser(eligibleUsers, nextCounts, chore.id, nextChoreCounts)
+        const nextAssignment = roundAssignments.find((assignment) => assignment.choreId === chore.id)
+        const chosenUser = nextAssignment ? enabledUsers.find((user) => user.id === nextAssignment.userId) : null
+
+        if (!nextAssignment || !chosenUser) {
+          throw new Error('Could not resolve batch assignment')
+        }
+
         setActiveUserId(chosenUser.id)
         setIsReelSpinning(false)
         carnivalAudioRef.current?.stop()
         await carnivalAudioRef.current?.playBell()
 
-        const nextAssignment = { choreId: chore.id, userId: chosenUser.id }
         producedAssignments.push(nextAssignment)
-        assignedUserIds.add(chosenUser.id)
         nextCounts = {
           ...nextCounts,
           [chosenUser.id]: (nextCounts[chosenUser.id] ?? 0) + 1,

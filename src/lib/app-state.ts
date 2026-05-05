@@ -1,6 +1,8 @@
-import type { ChoreHistoryStats, FairnessDistributionEntry, HistoryStats, PersistedState, User } from '../types/app'
+import type { Assignment, Chore, ChoreHistoryStats, FairnessDistributionEntry, HistoryStats, PersistedState, User } from '../types/app'
 
 export const STORAGE_KEY = 'wheel-of-unfortune-state'
+
+const MAX_ASSIGNMENT_CANDIDATES = 5000
 
 export function createDefaultState(): PersistedState {
   return {
@@ -92,6 +94,149 @@ export function chooseFairestUser(
   }
 
   return weightedUsers[weightedUsers.length - 1].user
+}
+
+export function chooseFairestAssignments(
+  chores: Chore[],
+  users: User[],
+  counts: HistoryStats,
+  choreHistoryCounts: ChoreHistoryStats,
+  existingRoundAssignments: Assignment[] = [],
+  roundChores: Chore[] = chores,
+): Assignment[] {
+  if (chores.length === 0) {
+    return []
+  }
+
+  if (users.length === 0) {
+    throw new Error('Cannot choose from an empty user list')
+  }
+
+  const candidates = buildAssignmentCandidates(
+    chores,
+    users,
+    counts,
+    choreHistoryCounts,
+    existingRoundAssignments,
+    roundChores,
+    true,
+  )
+  const viableCandidates = candidates.length > 0
+    ? candidates
+    : buildAssignmentCandidates(chores, users, counts, choreHistoryCounts, existingRoundAssignments, roundChores, false)
+
+  const scoredCandidates = viableCandidates
+    .map((assignments) => ({ assignments, score: scoreAssignments(assignments, users, counts, choreHistoryCounts) }))
+    .sort((left, right) => left.score - right.score)
+  const bestScore = scoredCandidates[0]?.score ?? 0
+  const bestCandidates = scoredCandidates.filter((candidate) => candidate.score === bestScore)
+  const chosenIndex = Math.floor(Math.random() * bestCandidates.length)
+
+  return bestCandidates[chosenIndex]?.assignments ?? []
+}
+
+function buildAssignmentCandidates(
+  chores: Chore[],
+  users: User[],
+  counts: HistoryStats,
+  choreHistoryCounts: ChoreHistoryStats,
+  existingRoundAssignments: Assignment[],
+  roundChores: Chore[],
+  enforceEvenDistribution: boolean,
+) {
+  const candidates: Assignment[][] = []
+  const current: Assignment[] = []
+  const assignmentCounts = new Map(users.map((user) => [user.id, 0]))
+  const roundChoreIds = new Set(roundChores.map((chore) => chore.id))
+  let relevantExistingAssignmentCount = 0
+
+  for (const assignment of existingRoundAssignments) {
+    if (!roundChoreIds.has(assignment.choreId) || !assignmentCounts.has(assignment.userId)) {
+      continue
+    }
+
+    relevantExistingAssignmentCount += 1
+    assignmentCounts.set(assignment.userId, (assignmentCounts.get(assignment.userId) ?? 0) + 1)
+  }
+
+  const totalRoundAssignments = relevantExistingAssignmentCount + chores.length
+  const targetPerUser = Math.floor(totalRoundAssignments / users.length)
+  const usersWithExtraAssignment = totalRoundAssignments % users.length
+  const maxAssignmentsPerUser = targetPerUser + (usersWithExtraAssignment > 0 ? 1 : 0)
+
+  function visit(choreIndex: number) {
+    if (choreIndex === chores.length) {
+      const isEvenRoundDistribution = users.every((user) => {
+        const userAssignmentCount = assignmentCounts.get(user.id) ?? 0
+
+        return userAssignmentCount >= targetPerUser && userAssignmentCount <= maxAssignmentsPerUser
+      })
+
+      if (!enforceEvenDistribution || isEvenRoundDistribution) {
+        candidates.push([...current])
+      }
+
+      return
+    }
+
+    const sortedUsers = [...users].sort((left, right) => {
+      const leftChoreCount = choreHistoryCounts[chores[choreIndex].id]?.[left.id] ?? 0
+      const rightChoreCount = choreHistoryCounts[chores[choreIndex].id]?.[right.id] ?? 0
+      const leftAssignmentCount = assignmentCounts.get(left.id) ?? 0
+      const rightAssignmentCount = assignmentCounts.get(right.id) ?? 0
+      const leftProjectedCount = (counts[left.id] ?? 0) + leftAssignmentCount
+      const rightProjectedCount = (counts[right.id] ?? 0) + rightAssignmentCount
+
+      return leftChoreCount - rightChoreCount || leftProjectedCount - rightProjectedCount || Math.random() - 0.5
+    })
+
+    for (const user of sortedUsers) {
+      if (candidates.length >= MAX_ASSIGNMENT_CANDIDATES) {
+        return
+      }
+
+      const userAssignmentCount = assignmentCounts.get(user.id) ?? 0
+
+      if (userAssignmentCount >= maxAssignmentsPerUser) {
+        continue
+      }
+
+      current.push({ choreId: chores[choreIndex].id, userId: user.id })
+      assignmentCounts.set(user.id, userAssignmentCount + 1)
+      visit(choreIndex + 1)
+      assignmentCounts.set(user.id, userAssignmentCount)
+      current.pop()
+    }
+  }
+
+  visit(0)
+
+  return candidates
+}
+
+function scoreAssignments(
+  assignments: Assignment[],
+  users: User[],
+  counts: HistoryStats,
+  choreHistoryCounts: ChoreHistoryStats,
+) {
+  const projectedCounts = { ...counts }
+  let choreSpecificPenalty = 0
+
+  for (const assignment of assignments) {
+    projectedCounts[assignment.userId] = (projectedCounts[assignment.userId] ?? 0) + 1
+    choreSpecificPenalty += choreHistoryCounts[assignment.choreId]?.[assignment.userId] ?? 0
+  }
+
+  const userCounts = users.map((user) => projectedCounts[user.id] ?? 0)
+  const lowestOverallCount = Math.min(...userCounts)
+  const highestOverallCount = Math.max(...userCounts)
+  const overallSpreadPenalty = (highestOverallCount - lowestOverallCount) * users.length
+  const distanceFromEvenPenalty = userCounts.reduce((sum, count) => {
+    return sum + Math.abs(count - lowestOverallCount)
+  }, 0)
+
+  return overallSpreadPenalty + distanceFromEvenPenalty + choreSpecificPenalty * 2
 }
 
 export function getFairnessDistribution(
