@@ -19,6 +19,14 @@ export type HistoryStats = Record<string, number>
 
 export type ChoreHistoryStats = Record<string, Record<string, number>>
 
+export type FairnessDistributionEntry = {
+  user: User
+  overallCount: number
+  choreCount: number
+  weight: number
+  chance: number
+}
+
 export type PersistedState = {
   users: User[]
   chores: Chore[]

@@ -1,15 +1,17 @@
 type NavigationItem = {
   badge: number
-  id: string
+  id: NavigationView
   label: string
   ready: boolean
   step: number
 }
 
+export type NavigationView = 'users' | 'chores' | 'play' | 'fairness'
+
 type NavigationTabsProps = {
-  activeView: 'play' | 'chores' | 'users'
+  activeView: NavigationView
   items: NavigationItem[]
-  onChange: (view: 'play' | 'chores' | 'users') => void
+  onChange: (view: NavigationView) => void
   onResetEverything: () => void
 }
 
@@ -26,7 +28,7 @@ function NavigationTabs({ activeView, items, onChange, onResetEverything }: Navi
         </button>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="grid gap-3 md:grid-cols-4">
         {items.map((item) => {
           const isActive = item.id === activeView
 
@@ -35,7 +37,7 @@ function NavigationTabs({ activeView, items, onChange, onResetEverything }: Navi
               key={item.id}
               type="button"
               className={['view-tab', isActive ? 'view-tab-active' : ''].filter(Boolean).join(' ')}
-              onClick={() => onChange(item.id as 'play' | 'chores' | 'users')}
+              onClick={() => onChange(item.id)}
               aria-pressed={isActive}
             >
               <span className="view-tab__copy">
