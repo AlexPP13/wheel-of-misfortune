@@ -1,4 +1,4 @@
-import type { ChoreHistoryStats, HistoryStats, PersistedState, User } from '../types/app'
+import type { ChoreHistoryStats, FairnessDistributionEntry, HistoryStats, PersistedState, User } from '../types/app'
 
 export const STORAGE_KEY = 'wheel-of-unfortune-state'
 
@@ -79,6 +79,31 @@ export function chooseFairestUser(
     throw new Error('Cannot choose from an empty user list')
   }
 
+  const weightedUsers = getFairnessDistribution(users, counts, choreId, choreHistoryCounts)
+  const totalWeight = weightedUsers.reduce((sum, entry) => sum + entry.weight, 0)
+  let roll = Math.random() * totalWeight
+
+  for (const entry of weightedUsers) {
+    roll -= entry.weight
+
+    if (roll <= 0) {
+      return entry.user
+    }
+  }
+
+  return weightedUsers[weightedUsers.length - 1].user
+}
+
+export function getFairnessDistribution(
+  users: User[],
+  counts: HistoryStats,
+  choreId: string,
+  choreHistoryCounts: ChoreHistoryStats,
+): FairnessDistributionEntry[] {
+  if (users.length === 0) {
+    return []
+  }
+
   const lowestOverallCount = Math.min(...users.map((user) => counts[user.id] ?? 0))
   const highestOverallCount = Math.max(...users.map((user) => counts[user.id] ?? 0))
   const overallSpread = highestOverallCount - lowestOverallCount
@@ -97,22 +122,17 @@ export function chooseFairestUser(
 
     return {
       user,
+      overallCount,
+      choreCount,
       weight: overallWeight * choreWeight,
     }
   })
-
   const totalWeight = weightedUsers.reduce((sum, entry) => sum + entry.weight, 0)
-  let roll = Math.random() * totalWeight
 
-  for (const entry of weightedUsers) {
-    roll -= entry.weight
-
-    if (roll <= 0) {
-      return entry.user
-    }
-  }
-
-  return weightedUsers[weightedUsers.length - 1].user
+  return weightedUsers.map((entry) => ({
+    ...entry,
+    chance: totalWeight > 0 ? entry.weight / totalWeight : 0,
+  }))
 }
 
 export function getUserAura(index: number) {

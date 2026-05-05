@@ -4,7 +4,8 @@ import AssignmentsPanel from './components/AssignmentsPanel'
 import ChoreListPanel from './components/ChoreListPanel'
 import DoomDomeSection from './components/DoomDomeSection'
 import EditableListPanel from './components/EditableListPanel'
-import NavigationTabs from './components/NavigationTabs'
+import FairnessRadar from './components/FairnessRadar'
+import NavigationTabs, { type NavigationView } from './components/NavigationTabs'
 import {
   STORAGE_KEY,
   chooseFairestUser,
@@ -13,8 +14,6 @@ import {
 } from './lib/app-state'
 import { CarnivalAudio } from './lib/carnivalAudio'
 import type { Assignment, Chore, ChoreHistoryStats, HistoryStats, PersistedState, User } from './types/app'
-
-type AppView = 'play' | 'chores' | 'users'
 
 function App() {
   const carnivalAudioRef = useRef<CarnivalAudio | null>(null)
@@ -31,7 +30,7 @@ function App() {
   const [activeUserId, setActiveUserId] = useState<string | null>(null)
   const [currentChoreId, setCurrentChoreId] = useState<string | null>(null)
   const [confettiBurstKey, setConfettiBurstKey] = useState(0)
-  const [activeView, setActiveView] = useState<AppView>('users')
+  const [activeView, setActiveView] = useState<NavigationView>('users')
   const [message, setMessage] = useState('Summon the cast, feed the wheel, and unleash chore destiny.')
 
   useEffect(() => {
@@ -360,6 +359,13 @@ function App() {
       ready: hasUsers && hasChores,
       step: 3,
     },
+    {
+      id: 'fairness' as const,
+      label: 'Fairness',
+      badge: users.length,
+      ready: hasUsers && hasChores,
+      step: 4,
+    },
   ]
 
   const renderActiveView = () => {
@@ -397,6 +403,19 @@ function App() {
             onToggleDisabled={toggleChoreDisabled}
             onSubmit={addChore}
             value={choreName}
+          />
+        </section>
+      )
+    }
+
+    if (activeView === 'fairness') {
+      return (
+        <section className="w-full">
+          <FairnessRadar
+            chores={chores}
+            choreHistoryCounts={choreHistoryCounts}
+            historyCounts={historyCounts}
+            users={users}
           />
         </section>
       )
