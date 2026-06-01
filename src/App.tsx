@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import AppShell from './components/AppShell'
 import AssignmentsPanel from './components/AssignmentsPanel'
+import BattlePanel, { type BattleDisplayResult } from './components/BattlePanel'
 import ChoreListPanel from './components/ChoreListPanel'
 import DoomDomeSection from './components/DoomDomeSection'
 import EditableListPanel from './components/EditableListPanel'
@@ -11,7 +12,10 @@ import {
   chooseFairestAssignments,
   createDefaultState,
   getStoredState,
+  resolveRandomBattle,
+  transferAssignmentOwner,
 } from './lib/app-state'
+import { playBattleSpectacle } from './lib/battleAudio'
 import { CarnivalAudio } from './lib/carnivalAudio'
 import type { Assignment, Chore, ChoreHistoryStats, HistoryStats, PersistedState, User } from './types/app'
 
@@ -31,6 +35,8 @@ function App() {
   const [currentChoreId, setCurrentChoreId] = useState<string | null>(null)
   const [confettiBurstKey, setConfettiBurstKey] = useState(0)
   const [activeView, setActiveView] = useState<NavigationView>('users')
+  const [lastBattleResult, setLastBattleResult] = useState<BattleDisplayResult | null>(null)
+  const [selectedBattleUserIds, setSelectedBattleUserIds] = useState<string[]>([])
   const [message, setMessage] = useState('Summon the cast, feed the wheel, and unleash chore destiny.')
 
   useEffect(() => {
@@ -96,6 +102,16 @@ function App() {
   const canSpin = enabledUsers.length > 0 && remainingChores.length > 0 && !isSpinning
   const hasUsers = users.length > 0
   const hasChores = chores.length > 0
+  const assignedBattleUserIds = useMemo(() => new Set(assignments.map((assignment) => assignment.userId)), [assignments])
+  const eligibleBattleUserIds = useMemo(
+    () => users.filter((user) => assignedBattleUserIds.has(user.id) && !user.disabled).map((user) => user.id),
+    [assignedBattleUserIds, users],
+  )
+  const numberOfEligibleBattleUsers = eligibleBattleUserIds.length
+
+  useEffect(() => {
+    setSelectedBattleUserIds((current) => current.filter((userId) => eligibleBattleUserIds.includes(userId)))
+  }, [eligibleBattleUserIds])
 
   const addUser = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -315,6 +331,8 @@ function App() {
     setActiveUserId(null)
     setIsSpinning(false)
     setIsReelSpinning(false)
+    setLastBattleResult(null)
+    setSelectedBattleUserIds([])
     setMessage('Round wiped clean. The crowd demands another overproduced catastrophe.')
   }
 
@@ -334,7 +352,98 @@ function App() {
     setActiveUserId(null)
     setIsSpinning(false)
     setIsReelSpinning(false)
+    setLastBattleResult(null)
+    setSelectedBattleUserIds([])
     setMessage('Everything has been reset. The arena is empty until you add users and chores.')
+  }
+
+  const switchAssignmentOwner = (choreId: string, fromUserId: string, toUserId: string) => {
+    if (isSpinning) return
+
+    const targetUser = users.find((user) => user.id === toUserId)
+
+    if (!targetUser || targetUser.disabled) return
+
+    const result = transferAssignmentOwner({
+      choreId,
+      fromUserId,
+      toUserId,
+      assignments,
+      historyCounts,
+      choreHistoryCounts,
+    })
+
+    if (!result) return
+
+    setAssignments(result.assignments)
+    setHistoryCounts(result.historyCounts)
+    setChoreHistoryCounts(result.choreHistoryCounts)
+
+    const chore = chores.find((item) => item.id === choreId)
+    setMessage(
+      chore
+        ? `🔁 ${chore.name} has been switched to ${targetUser.name}. The ledger has been updated.`
+        : '🔁 Task switched. The ledger has been updated.',
+    )
+  }
+
+  const runRandomBattle = () => {
+    if (isSpinning) return
+
+    const eligibleUserIds = selectedBattleUserIds.filter((userId) => eligibleBattleUserIds.includes(userId))
+
+    if (eligibleUserIds.length < 2) {
+      setMessage('🎲 Select at least two assigned contestants for battle.')
+      return
+    }
+
+    const result = resolveRandomBattle({
+      assignments,
+      eligibleUserIds,
+      historyCounts,
+      choreHistoryCounts,
+    })
+
+    if (!result) {
+      setMessage('🎲 Battle needs at least two assigned contestants.')
+      return
+    }
+
+    setAssignments(result.assignments)
+    setHistoryCounts(result.historyCounts)
+    setChoreHistoryCounts(result.choreHistoryCounts)
+
+    setLastBattleResult({
+      winnerUserIds: result.winnerUserIds,
+      loserUserId: result.loserUserId,
+      transferredChoreIds: result.transferredChoreIds,
+    })
+
+    const winnerNames = result.winnerUserIds
+      .map((userId) => users.find((user) => user.id === userId)?.name)
+      .filter((name): name is string => Boolean(name))
+    const loser = users.find((user) => user.id === result.loserUserId)
+    const transferredChoreNames = result.transferredChoreIds
+      .map((choreId) => chores.find((chore) => chore.id === choreId)?.name)
+      .filter((name): name is string => Boolean(name))
+
+    setMessage(
+      loser && winnerNames.length > 0 && transferredChoreNames.length > 0
+        ? `🎲 ${loser.name} lost the battle. ${winnerNames.join(', ')} escaped, and ${transferredChoreNames.join(', ')} moved to ${loser.name}.`
+        : '🎲 Battle resolved. The loser inherited the selected winners’ tasks.',
+    )
+
+    if (loser) {
+      playBattleSpectacle(`${loser.name} has fallen. Double damage. The chores are theirs now.`)
+    }
+  }
+
+  const toggleBattleUser = (userId: string) => {
+    if (isSpinning || !eligibleBattleUserIds.includes(userId)) return
+
+    setSelectedBattleUserIds((current) =>
+      current.includes(userId) ? current.filter((item) => item !== userId) : [...current, userId],
+    )
   }
 
   useEffect(() => {
@@ -385,11 +494,18 @@ function App() {
       step: 3,
     },
     {
+      id: 'battle' as const,
+      label: 'Battle',
+      badge: numberOfEligibleBattleUsers,
+      ready: numberOfEligibleBattleUsers >= 2,
+      step: 4,
+    },
+    {
       id: 'fairness' as const,
       label: 'Fairness',
       badge: users.length,
       ready: hasUsers && hasChores,
-      step: 4,
+      step: 5,
     },
   ]
 
@@ -446,6 +562,24 @@ function App() {
       )
     }
 
+    if (activeView === 'battle') {
+      return (
+        <section className="w-full">
+          <BattlePanel
+            assignments={assignments}
+            assignmentRows={assignmentRows}
+            chores={chores}
+            disabled={isSpinning}
+            lastBattleResult={lastBattleResult}
+            onRunBattle={runRandomBattle}
+            onToggleUser={toggleBattleUser}
+            selectedUserIds={selectedBattleUserIds}
+            users={users}
+          />
+        </section>
+      )
+    }
+
     return (
       <section className="grid gap-6 xl:grid-cols-[1.35fr_0.8fr] xl:items-start">
         <DoomDomeSection
@@ -467,7 +601,12 @@ function App() {
           onRunSpin={runSpin}
           users={enabledUsers}
         />
-        <AssignmentsPanel assignmentRows={assignmentRows} />
+        <AssignmentsPanel
+          assignmentRows={assignmentRows}
+          disabled={isSpinning}
+          onSwitchAssignment={switchAssignmentOwner}
+          users={users}
+        />
       </section>
     )
   }

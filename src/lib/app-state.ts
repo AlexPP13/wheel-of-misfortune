@@ -102,6 +102,149 @@ export function sanitizeAssignments(assignments: unknown, users: User[], chores:
   })
 }
 
+export type RandomBattleResult = {
+  loserUserId: string
+  participantUserIds: string[]
+  transferredChoreIds: string[]
+  winnerUserIds: string[]
+  wageredAssignments: Assignment[]
+  assignments: Assignment[]
+  historyCounts: HistoryStats
+  choreHistoryCounts: ChoreHistoryStats
+}
+
+export function transferAssignmentOwner({
+  choreId,
+  fromUserId,
+  toUserId,
+  assignments,
+  historyCounts,
+  choreHistoryCounts,
+}: {
+  choreId: string
+  fromUserId: string
+  toUserId: string
+  assignments: Assignment[]
+  historyCounts: HistoryStats
+  choreHistoryCounts: ChoreHistoryStats
+}): {
+  assignments: Assignment[]
+  historyCounts: HistoryStats
+  choreHistoryCounts: ChoreHistoryStats
+} | null {
+  if (fromUserId === toUserId) {
+    return null
+  }
+
+  const currentAssignment = assignments.find((assignment) => assignment.choreId === choreId)
+
+  if (!currentAssignment || currentAssignment.userId !== fromUserId) {
+    return null
+  }
+
+  return {
+    assignments: assignments.map((assignment) =>
+      assignment.choreId === choreId ? { ...assignment, userId: toUserId } : assignment,
+    ),
+    historyCounts: {
+      ...historyCounts,
+      [fromUserId]: Math.max((historyCounts[fromUserId] ?? 0) - 1, 0),
+      [toUserId]: (historyCounts[toUserId] ?? 0) + 1,
+    },
+    choreHistoryCounts: {
+      ...choreHistoryCounts,
+      [choreId]: {
+        ...choreHistoryCounts[choreId],
+        [fromUserId]: Math.max((choreHistoryCounts[choreId]?.[fromUserId] ?? 0) - 1, 0),
+        [toUserId]: (choreHistoryCounts[choreId]?.[toUserId] ?? 0) + 1,
+      },
+    },
+  }
+}
+
+function pickWeightedBattleLoser(userIds: string[], assignments: Assignment[], rng: () => number) {
+  const weightedUsers = userIds.map((userId) => ({
+    userId,
+    weight: assignments.filter((assignment) => assignment.userId === userId).length,
+  }))
+  const totalWeight = weightedUsers.reduce((total, user) => total + user.weight, 0)
+  let roll = rng() * totalWeight
+
+  for (const user of weightedUsers) {
+    roll -= user.weight
+
+    if (roll <= 0) {
+      return user.userId
+    }
+  }
+
+  return weightedUsers[weightedUsers.length - 1].userId
+}
+
+export function resolveRandomBattle({
+  assignments,
+  eligibleUserIds,
+  historyCounts,
+  choreHistoryCounts,
+  rng = Math.random,
+}: {
+  assignments: Assignment[]
+  eligibleUserIds: string[]
+  historyCounts: HistoryStats
+  choreHistoryCounts: ChoreHistoryStats
+  rng?: () => number
+}): RandomBattleResult | null {
+  const eligibleWithAssignments = eligibleUserIds.filter((userId) =>
+    assignments.some((assignment) => assignment.userId === userId),
+  )
+
+  if (eligibleWithAssignments.length < 2) {
+    return null
+  }
+
+  const wageredAssignments = assignments.filter((assignment) => eligibleWithAssignments.includes(assignment.userId))
+  const loserUserId = pickWeightedBattleLoser(eligibleWithAssignments, wageredAssignments, rng)
+  const transferredChoreIds: string[] = []
+  let nextAssignments = assignments
+  let nextHistoryCounts = historyCounts
+  let nextChoreHistoryCounts = choreHistoryCounts
+
+  for (const assignment of wageredAssignments) {
+    if (assignment.userId === loserUserId) {
+      continue
+    }
+
+    const transferred = transferAssignmentOwner({
+      choreId: assignment.choreId,
+      fromUserId: assignment.userId,
+      toUserId: loserUserId,
+      assignments: nextAssignments,
+      historyCounts: nextHistoryCounts,
+      choreHistoryCounts: nextChoreHistoryCounts,
+    })
+
+    if (!transferred) {
+      return null
+    }
+
+    transferredChoreIds.push(assignment.choreId)
+    nextAssignments = transferred.assignments
+    nextHistoryCounts = transferred.historyCounts
+    nextChoreHistoryCounts = transferred.choreHistoryCounts
+  }
+
+  return {
+    loserUserId,
+    participantUserIds: eligibleWithAssignments,
+    transferredChoreIds,
+    winnerUserIds: eligibleWithAssignments.filter((userId) => userId !== loserUserId),
+    wageredAssignments,
+    assignments: nextAssignments,
+    historyCounts: nextHistoryCounts,
+    choreHistoryCounts: nextChoreHistoryCounts,
+  }
+}
+
 export function chooseFairestUser(
   users: User[],
   counts: HistoryStats,
