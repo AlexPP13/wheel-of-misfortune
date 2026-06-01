@@ -15,6 +15,7 @@ import {
   resolveRandomBattle,
   transferAssignmentOwner,
 } from './lib/app-state'
+import { playBattleSpectacle } from './lib/battleAudio'
 import { CarnivalAudio } from './lib/carnivalAudio'
 import type { Assignment, Chore, ChoreHistoryStats, HistoryStats, PersistedState, User } from './types/app'
 
@@ -431,6 +432,10 @@ function App() {
         ? `🎲 ${loser.name} lost the battle. ${winnerNames.join(', ')} escaped, and ${transferredChoreNames.join(', ')} moved to ${loser.name}.`
         : '🎲 Battle resolved. The loser inherited the selected winners’ tasks.',
     )
+
+    if (loser) {
+      playBattleSpectacle(`${loser.name} has fallen. Double damage. The chores are theirs now.`)
+    }
   }
 
   const toggleBattleUser = (userId: string) => {

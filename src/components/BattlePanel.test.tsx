@@ -40,6 +40,8 @@ describe('BattlePanel', () => {
     )
 
     expect(screen.getByRole('heading', { name: 'Random Battle' })).toBeInTheDocument()
+    expect(screen.getByText('Dishes')).toBeInTheDocument()
+    expect(screen.getByText('Trash')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Start random battle' }))
 

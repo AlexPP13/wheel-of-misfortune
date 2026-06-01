@@ -42,6 +42,10 @@ function BattlePanel({
   const transferredChores = lastBattleResult?.transferredChoreIds
     .map((choreId) => chores.find((chore) => chore.id === choreId))
     .filter((chore): chore is Chore => Boolean(chore)) ?? []
+  const assignmentsByUserId = assignmentRows.reduce<Record<string, AssignmentRow[]>>((acc, assignment) => {
+    acc[assignment.userId] = [...(acc[assignment.userId] ?? []), assignment]
+    return acc
+  }, {})
 
   return (
     <motion.div className="glass-panel p-6" initial="hidden" animate="visible" variants={panelMotion}>
@@ -60,17 +64,19 @@ function BattlePanel({
       {eligibleUsers.length > 0 ? (
         <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {eligibleUsers.map((user) => {
-            const userAssignments = assignments.filter((assignment) => assignment.userId === user.id).length
+            const userAssignments = assignmentsByUserId[user.id] ?? []
             const isSelected = selectedUserIds.includes(user.id)
 
             return (
-              <label
+              <motion.label
                 key={user.id}
                 className={[
                   'battle-contestant-card',
                   isSelected ? 'battle-contestant-card-selected' : '',
                   disabled ? 'battle-contestant-card-disabled' : '',
                 ].filter(Boolean).join(' ')}
+                whileHover={disabled ? undefined : { scale: 1.02 }}
+                whileTap={disabled ? undefined : { scale: 0.98 }}
               >
                 <input
                   type="checkbox"
@@ -80,9 +86,16 @@ function BattlePanel({
                 />
                 <span className="battle-contestant-card__copy">
                   <span className="battle-contestant-card__name">{user.name}</span>
-                  <span className="battle-contestant-card__meta">{userAssignments} assigned task{userAssignments === 1 ? '' : 's'}</span>
+                  <span className="battle-contestant-card__meta">Wagering</span>
+                  <span className="battle-contestant-card__tasks">
+                    {userAssignments.map((assignment) => (
+                      <span key={assignment.choreId} className="battle-contestant-card__task">
+                        {assignment.choreName}
+                      </span>
+                    ))}
+                  </span>
                 </span>
-              </label>
+              </motion.label>
             )
           })}
         </div>
@@ -95,29 +108,24 @@ function BattlePanel({
         {!canBattle ? <p className="text-sm font-bold text-stone-700">Select at least two assigned users for battle.</p> : null}
       </div>
 
-      {assignmentRows.length > 0 ? (
-        <div className="mt-6 grid gap-3 md:grid-cols-2">
-          {assignmentRows.map((assignment) => (
-            <div key={assignment.choreId} className="rounded-3xl border border-amber-900/10 bg-amber-50/55 p-4 shadow-inner">
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-stone-600">{assignment.userName}</p>
-              <p className="mt-1 text-lg font-black text-stone-900">{assignment.choreName}</p>
-            </div>
-          ))}
-        </div>
-      ) : null}
-
       {lastBattleResult && loser ? (
-        <div className="mt-6 rounded-3xl border border-amber-900/20 bg-amber-100/70 p-5 shadow-inner">
+        <motion.div
+          className="battle-result-panel"
+          initial={{ opacity: 0, scale: 0.92, y: 22 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ type: 'spring', stiffness: 180, damping: 16 }}
+        >
+          <div className="battle-result-panel__flare" />
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-amber-900/75">Battle result</p>
           <div className="mt-3 grid gap-3 md:grid-cols-3">
             <p className="text-sm font-bold text-stone-800">Winners: <span className="text-stone-950">{winners.map((winner) => winner.name).join(', ')}</span></p>
             <p className="text-sm font-bold text-stone-800">Loser: <span className="text-stone-950">{loser.name}</span></p>
             <p className="text-sm font-bold text-stone-800">Transferred: <span className="text-stone-950">{transferredChores.map((chore) => chore.name).join(', ')}</span></p>
           </div>
-          <p className="mt-3 text-lg font-black text-stone-900">
+          <p className="battle-result-panel__callout">
             🎲 {loser.name} lost the battle and inherited {transferredChores.length} wagered task{transferredChores.length === 1 ? '' : 's'}.
           </p>
-        </div>
+        </motion.div>
       ) : null}
     </motion.div>
   )
