@@ -1,7 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { Assignment, Chore, ChoreHistoryStats, HistoryStats, User } from '../types/app'
-import { STORAGE_KEY, chooseFairestAssignments, createDefaultState, getStoredState } from './app-state'
+import {
+  STORAGE_KEY,
+  chooseFairestAssignments,
+  createDefaultState,
+  getStoredState,
+  resolveRandomBattle,
+  transferAssignmentOwner,
+} from './app-state'
 
 const users: User[] = [
   { id: 'user-1', name: 'Ada', disabled: false },
@@ -209,5 +216,128 @@ describe('chooseFairestAssignments', () => {
     expect(chooseFairestAssignments([chores[0]], users, {}, choreHistoryCounts)).toEqual([
       { userId: 'user-2', choreId: 'chore-1' },
     ])
+  })
+})
+
+describe('transferAssignmentOwner', () => {
+  const assignments: Assignment[] = [{ choreId: 'chore-1', userId: 'user-1' }]
+  const historyCounts: HistoryStats = { 'user-1': 1, 'user-2': 0 }
+  const choreHistoryCounts: ChoreHistoryStats = { 'chore-1': { 'user-1': 1, 'user-2': 0 } }
+
+  it('transfers the chore and updates all history counts', () => {
+    const result = transferAssignmentOwner({
+      choreId: 'chore-1',
+      fromUserId: 'user-1',
+      toUserId: 'user-2',
+      assignments,
+      historyCounts,
+      choreHistoryCounts,
+    })
+
+    expect(result).toEqual({
+      assignments: [{ choreId: 'chore-1', userId: 'user-2' }],
+      historyCounts: { 'user-1': 0, 'user-2': 1 },
+      choreHistoryCounts: { 'chore-1': { 'user-1': 0, 'user-2': 1 } },
+    })
+  })
+
+  it('clamps decremented counts at 0', () => {
+    const result = transferAssignmentOwner({
+      choreId: 'chore-1',
+      fromUserId: 'user-1',
+      toUserId: 'user-2',
+      assignments,
+      historyCounts: { 'user-1': 0, 'user-2': 0 },
+      choreHistoryCounts: { 'chore-1': { 'user-1': 0, 'user-2': 0 } },
+    })
+
+    expect(result?.historyCounts['user-1']).toBe(0)
+    expect(result?.choreHistoryCounts['chore-1']['user-1']).toBe(0)
+  })
+
+  it('returns null for missing or stale assignments', () => {
+    expect(
+      transferAssignmentOwner({
+        choreId: 'missing-chore',
+        fromUserId: 'user-1',
+        toUserId: 'user-2',
+        assignments,
+        historyCounts,
+        choreHistoryCounts,
+      }),
+    ).toBeNull()
+    expect(
+      transferAssignmentOwner({
+        choreId: 'chore-1',
+        fromUserId: 'user-2',
+        toUserId: 'user-1',
+        assignments,
+        historyCounts,
+        choreHistoryCounts,
+      }),
+    ).toBeNull()
+  })
+
+  it('returns null when users match', () => {
+    expect(
+      transferAssignmentOwner({
+        choreId: 'chore-1',
+        fromUserId: 'user-1',
+        toUserId: 'user-1',
+        assignments,
+        historyCounts,
+        choreHistoryCounts,
+      }),
+    ).toBeNull()
+  })
+})
+
+describe('resolveRandomBattle', () => {
+  const battleAssignments: Assignment[] = [
+    { choreId: 'chore-1', userId: 'user-1' },
+    { choreId: 'chore-2', userId: 'user-2' },
+    { choreId: 'chore-3', userId: 'user-1' },
+  ]
+  const historyCounts: HistoryStats = { 'user-1': 2, 'user-2': 1, 'user-3': 0 }
+  const choreHistoryCounts: ChoreHistoryStats = {
+    'chore-1': { 'user-1': 1, 'user-2': 0, 'user-3': 0 },
+    'chore-2': { 'user-1': 0, 'user-2': 1, 'user-3': 0 },
+    'chore-3': { 'user-1': 1, 'user-2': 0, 'user-3': 0 },
+  }
+
+  it('returns null when fewer than two eligible assigned users exist', () => {
+    expect(
+      resolveRandomBattle({
+        assignments: battleAssignments,
+        eligibleUserIds: ['user-1', 'user-3'],
+        historyCounts,
+        choreHistoryCounts,
+      }),
+    ).toBeNull()
+  })
+
+  it('selects distinct users and transfers the winner task to the loser', () => {
+    const rolls = [0, 0, 0, 0, 0.9]
+    const result = resolveRandomBattle({
+      assignments: battleAssignments,
+      eligibleUserIds: ['user-1', 'user-2'],
+      historyCounts,
+      choreHistoryCounts,
+      rng: () => rolls.shift() ?? 0,
+    })
+
+    expect(result?.first.userId).toBe('user-1')
+    expect(result?.second.userId).toBe('user-2')
+    expect(result?.winnerUserId).toBe('user-1')
+    expect(result?.loserUserId).toBe('user-2')
+    expect(result?.transferredChoreId).toBe('chore-1')
+    expect(result?.assignments).toEqual([
+      { choreId: 'chore-1', userId: 'user-2' },
+      { choreId: 'chore-2', userId: 'user-2' },
+      { choreId: 'chore-3', userId: 'user-1' },
+    ])
+    expect(result?.historyCounts).toEqual({ 'user-1': 1, 'user-2': 2, 'user-3': 0 })
+    expect(result?.choreHistoryCounts['chore-1']).toEqual({ 'user-1': 0, 'user-2': 1, 'user-3': 0 })
+    expect(result?.choreHistoryCounts['chore-2']).toEqual({ 'user-1': 0, 'user-2': 1, 'user-3': 0 })
   })
 })

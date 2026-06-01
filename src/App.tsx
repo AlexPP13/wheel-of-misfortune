@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import AppShell from './components/AppShell'
 import AssignmentsPanel from './components/AssignmentsPanel'
+import BattlePanel, { type BattleDisplayResult } from './components/BattlePanel'
 import ChoreListPanel from './components/ChoreListPanel'
 import DoomDomeSection from './components/DoomDomeSection'
 import EditableListPanel from './components/EditableListPanel'
@@ -11,6 +12,8 @@ import {
   chooseFairestAssignments,
   createDefaultState,
   getStoredState,
+  resolveRandomBattle,
+  transferAssignmentOwner,
 } from './lib/app-state'
 import { CarnivalAudio } from './lib/carnivalAudio'
 import type { Assignment, Chore, ChoreHistoryStats, HistoryStats, PersistedState, User } from './types/app'
@@ -31,6 +34,7 @@ function App() {
   const [currentChoreId, setCurrentChoreId] = useState<string | null>(null)
   const [confettiBurstKey, setConfettiBurstKey] = useState(0)
   const [activeView, setActiveView] = useState<NavigationView>('users')
+  const [lastBattleResult, setLastBattleResult] = useState<BattleDisplayResult | null>(null)
   const [message, setMessage] = useState('Summon the cast, feed the wheel, and unleash chore destiny.')
 
   useEffect(() => {
@@ -315,6 +319,7 @@ function App() {
     setActiveUserId(null)
     setIsSpinning(false)
     setIsReelSpinning(false)
+    setLastBattleResult(null)
     setMessage('Round wiped clean. The crowd demands another overproduced catastrophe.')
   }
 
@@ -334,7 +339,79 @@ function App() {
     setActiveUserId(null)
     setIsSpinning(false)
     setIsReelSpinning(false)
+    setLastBattleResult(null)
     setMessage('Everything has been reset. The arena is empty until you add users and chores.')
+  }
+
+  const switchAssignmentOwner = (choreId: string, fromUserId: string, toUserId: string) => {
+    if (isSpinning) return
+
+    const targetUser = users.find((user) => user.id === toUserId)
+
+    if (!targetUser || targetUser.disabled) return
+
+    const result = transferAssignmentOwner({
+      choreId,
+      fromUserId,
+      toUserId,
+      assignments,
+      historyCounts,
+      choreHistoryCounts,
+    })
+
+    if (!result) return
+
+    setAssignments(result.assignments)
+    setHistoryCounts(result.historyCounts)
+    setChoreHistoryCounts(result.choreHistoryCounts)
+
+    const chore = chores.find((item) => item.id === choreId)
+    setMessage(
+      chore
+        ? `🔁 ${chore.name} has been switched to ${targetUser.name}. The ledger has been updated.`
+        : '🔁 Task switched. The ledger has been updated.',
+    )
+  }
+
+  const runRandomBattle = () => {
+    if (isSpinning) return
+
+    const eligibleUserIds = users
+      .filter((user) => !user.disabled)
+      .filter((user) => assignments.some((assignment) => assignment.userId === user.id))
+      .map((user) => user.id)
+    const result = resolveRandomBattle({
+      assignments,
+      eligibleUserIds,
+      historyCounts,
+      choreHistoryCounts,
+    })
+
+    if (!result) {
+      setMessage('🎲 Battle needs at least two assigned contestants.')
+      return
+    }
+
+    setAssignments(result.assignments)
+    setHistoryCounts(result.historyCounts)
+    setChoreHistoryCounts(result.choreHistoryCounts)
+
+    setLastBattleResult({
+      winnerUserId: result.winnerUserId,
+      loserUserId: result.loserUserId,
+      transferredChoreId: result.transferredChoreId,
+      keptChoreId: result.first.userId === result.loserUserId ? result.first.choreId : result.second.choreId,
+    })
+
+    const winner = users.find((user) => user.id === result.winnerUserId)
+    const loser = users.find((user) => user.id === result.loserUserId)
+    const transferredChore = chores.find((chore) => chore.id === result.transferredChoreId)
+
+    setMessage(
+      winner && loser && transferredChore
+        ? `🎲 ${loser.name} lost the battle. ${winner.name} escaped, and ${transferredChore.name} moved to ${loser.name}.`
+        : '🎲 Battle resolved. The loser inherited the winner’s task.',
+    )
   }
 
   useEffect(() => {
@@ -353,6 +430,8 @@ function App() {
     : remainingChores[0]?.name ?? (enabledChores.length === 0 && chores.length > 0 ? 'No enabled chores' : 'All chores assigned')
 
   const assignmentChoreIds = new Set(assignments.map((assignment) => assignment.choreId))
+  const assignedUserIds = new Set(assignments.map((assignment) => assignment.userId))
+  const numberOfEligibleBattleUsers = users.filter((user) => assignedUserIds.has(user.id) && !user.disabled).length
   const userItems = users.map((user) => ({
     id: user.id,
     name: user.name,
@@ -385,11 +464,18 @@ function App() {
       step: 3,
     },
     {
+      id: 'battle' as const,
+      label: 'Battle',
+      badge: numberOfEligibleBattleUsers,
+      ready: numberOfEligibleBattleUsers >= 2,
+      step: 4,
+    },
+    {
       id: 'fairness' as const,
       label: 'Fairness',
       badge: users.length,
       ready: hasUsers && hasChores,
-      step: 4,
+      step: 5,
     },
   ]
 
@@ -446,6 +532,22 @@ function App() {
       )
     }
 
+    if (activeView === 'battle') {
+      return (
+        <section className="w-full">
+          <BattlePanel
+            assignments={assignments}
+            assignmentRows={assignmentRows}
+            chores={chores}
+            disabled={isSpinning}
+            lastBattleResult={lastBattleResult}
+            onRunBattle={runRandomBattle}
+            users={users}
+          />
+        </section>
+      )
+    }
+
     return (
       <section className="grid gap-6 xl:grid-cols-[1.35fr_0.8fr] xl:items-start">
         <DoomDomeSection
@@ -467,7 +569,12 @@ function App() {
           onRunSpin={runSpin}
           users={enabledUsers}
         />
-        <AssignmentsPanel assignmentRows={assignmentRows} />
+        <AssignmentsPanel
+          assignmentRows={assignmentRows}
+          disabled={isSpinning}
+          onSwitchAssignment={switchAssignmentOwner}
+          users={users}
+        />
       </section>
     )
   }

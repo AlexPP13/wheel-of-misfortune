@@ -6,7 +6,7 @@ type NavigationItem = {
   step: number
 }
 
-export type NavigationView = 'users' | 'chores' | 'play' | 'fairness'
+export type NavigationView = 'users' | 'chores' | 'play' | 'battle' | 'fairness'
 
 type NavigationTabsProps = {
   activeView: NavigationView
@@ -34,7 +34,7 @@ function NavigationTabs({ activeView, disabled = false, items, onChange, onReset
         </button>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-4">
+      <div className="grid gap-3 md:grid-cols-5">
         {items.map((item) => {
           const isActive = item.id === activeView
 

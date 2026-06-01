@@ -102,6 +102,121 @@ export function sanitizeAssignments(assignments: unknown, users: User[], chores:
   })
 }
 
+export type RandomBattleResult = {
+  first: Assignment
+  second: Assignment
+  winnerUserId: string
+  loserUserId: string
+  transferredChoreId: string
+  assignments: Assignment[]
+  historyCounts: HistoryStats
+  choreHistoryCounts: ChoreHistoryStats
+}
+
+export function transferAssignmentOwner({
+  choreId,
+  fromUserId,
+  toUserId,
+  assignments,
+  historyCounts,
+  choreHistoryCounts,
+}: {
+  choreId: string
+  fromUserId: string
+  toUserId: string
+  assignments: Assignment[]
+  historyCounts: HistoryStats
+  choreHistoryCounts: ChoreHistoryStats
+}): {
+  assignments: Assignment[]
+  historyCounts: HistoryStats
+  choreHistoryCounts: ChoreHistoryStats
+} | null {
+  if (fromUserId === toUserId) {
+    return null
+  }
+
+  const currentAssignment = assignments.find((assignment) => assignment.choreId === choreId)
+
+  if (!currentAssignment || currentAssignment.userId !== fromUserId) {
+    return null
+  }
+
+  return {
+    assignments: assignments.map((assignment) =>
+      assignment.choreId === choreId ? { ...assignment, userId: toUserId } : assignment,
+    ),
+    historyCounts: {
+      ...historyCounts,
+      [fromUserId]: Math.max((historyCounts[fromUserId] ?? 0) - 1, 0),
+      [toUserId]: (historyCounts[toUserId] ?? 0) + 1,
+    },
+    choreHistoryCounts: {
+      ...choreHistoryCounts,
+      [choreId]: {
+        ...choreHistoryCounts[choreId],
+        [fromUserId]: Math.max((choreHistoryCounts[choreId]?.[fromUserId] ?? 0) - 1, 0),
+        [toUserId]: (choreHistoryCounts[choreId]?.[toUserId] ?? 0) + 1,
+      },
+    },
+  }
+}
+
+function pickRandom<T>(items: T[], rng: () => number): T {
+  return items[Math.floor(rng() * items.length)]
+}
+
+export function resolveRandomBattle({
+  assignments,
+  eligibleUserIds,
+  historyCounts,
+  choreHistoryCounts,
+  rng = Math.random,
+}: {
+  assignments: Assignment[]
+  eligibleUserIds: string[]
+  historyCounts: HistoryStats
+  choreHistoryCounts: ChoreHistoryStats
+  rng?: () => number
+}): RandomBattleResult | null {
+  const eligibleWithAssignments = eligibleUserIds.filter((userId) =>
+    assignments.some((assignment) => assignment.userId === userId),
+  )
+
+  if (eligibleWithAssignments.length < 2) {
+    return null
+  }
+
+  const firstUserId = pickRandom(eligibleWithAssignments, rng)
+  const secondUserId = pickRandom(eligibleWithAssignments.filter((userId) => userId !== firstUserId), rng)
+  const first = pickRandom(assignments.filter((assignment) => assignment.userId === firstUserId), rng)
+  const second = pickRandom(assignments.filter((assignment) => assignment.userId === secondUserId), rng)
+  const loserUserId = rng() < 0.5 ? firstUserId : secondUserId
+  const winnerUserId = loserUserId === firstUserId ? secondUserId : firstUserId
+  const transferredAssignment = winnerUserId === firstUserId ? first : second
+  const transferred = transferAssignmentOwner({
+    choreId: transferredAssignment.choreId,
+    fromUserId: winnerUserId,
+    toUserId: loserUserId,
+    assignments,
+    historyCounts,
+    choreHistoryCounts,
+  })
+
+  if (!transferred) {
+    return null
+  }
+
+  return {
+    first,
+    second,
+    winnerUserId,
+    loserUserId,
+    transferredChoreId: transferredAssignment.choreId,
+    ...transferred,
+  }
+}
+
 export function chooseFairestUser(
   users: User[],
   counts: HistoryStats,

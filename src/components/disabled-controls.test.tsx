@@ -67,7 +67,8 @@ describe('NavigationTabs disabled controls', () => {
           { id: 'users', label: 'Users', badge: 1, ready: true, step: 1 },
           { id: 'chores', label: 'Chores', badge: 1, ready: true, step: 2 },
           { id: 'play', label: 'Play', badge: 0, ready: true, step: 3 },
-          { id: 'fairness', label: 'Fairness', badge: 1, ready: true, step: 4 },
+          { id: 'battle', label: 'Battle', badge: 0, ready: false, step: 4 },
+          { id: 'fairness', label: 'Fairness', badge: 1, ready: true, step: 5 },
         ]}
         onChange={onChange}
         onResetEverything={vi.fn()}
