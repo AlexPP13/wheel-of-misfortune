@@ -41,8 +41,9 @@ function ChoreListPanel({
           onChange={(event) => onInputChange(event.target.value)}
           placeholder="Add a catastrophe"
           aria-label="Chore name"
+          disabled={disabled}
         />
-        <button type="submit" className="dramatic-button dramatic-button-emerald">
+        <button type="submit" className="dramatic-button dramatic-button-emerald" disabled={disabled}>
           Add
         </button>
       </form>
