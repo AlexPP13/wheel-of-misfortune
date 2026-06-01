@@ -103,11 +103,11 @@ export function sanitizeAssignments(assignments: unknown, users: User[], chores:
 }
 
 export type RandomBattleResult = {
-  first: Assignment
-  second: Assignment
-  winnerUserId: string
   loserUserId: string
-  transferredChoreId: string
+  participantUserIds: string[]
+  transferredChoreIds: string[]
+  winnerUserIds: string[]
+  wageredAssignments: Assignment[]
   assignments: Assignment[]
   historyCounts: HistoryStats
   choreHistoryCounts: ChoreHistoryStats
@@ -187,33 +187,46 @@ export function resolveRandomBattle({
     return null
   }
 
-  const firstUserId = pickRandom(eligibleWithAssignments, rng)
-  const secondUserId = pickRandom(eligibleWithAssignments.filter((userId) => userId !== firstUserId), rng)
-  const first = pickRandom(assignments.filter((assignment) => assignment.userId === firstUserId), rng)
-  const second = pickRandom(assignments.filter((assignment) => assignment.userId === secondUserId), rng)
-  const loserUserId = rng() < 0.5 ? firstUserId : secondUserId
-  const winnerUserId = loserUserId === firstUserId ? secondUserId : firstUserId
-  const transferredAssignment = winnerUserId === firstUserId ? first : second
-  const transferred = transferAssignmentOwner({
-    choreId: transferredAssignment.choreId,
-    fromUserId: winnerUserId,
-    toUserId: loserUserId,
-    assignments,
-    historyCounts,
-    choreHistoryCounts,
-  })
+  const loserUserId = pickRandom(eligibleWithAssignments, rng)
+  const wageredAssignments = assignments.filter((assignment) => eligibleWithAssignments.includes(assignment.userId))
+  const transferredChoreIds: string[] = []
+  let nextAssignments = assignments
+  let nextHistoryCounts = historyCounts
+  let nextChoreHistoryCounts = choreHistoryCounts
 
-  if (!transferred) {
-    return null
+  for (const assignment of wageredAssignments) {
+    if (assignment.userId === loserUserId) {
+      continue
+    }
+
+    const transferred = transferAssignmentOwner({
+      choreId: assignment.choreId,
+      fromUserId: assignment.userId,
+      toUserId: loserUserId,
+      assignments: nextAssignments,
+      historyCounts: nextHistoryCounts,
+      choreHistoryCounts: nextChoreHistoryCounts,
+    })
+
+    if (!transferred) {
+      return null
+    }
+
+    transferredChoreIds.push(assignment.choreId)
+    nextAssignments = transferred.assignments
+    nextHistoryCounts = transferred.historyCounts
+    nextChoreHistoryCounts = transferred.choreHistoryCounts
   }
 
   return {
-    first,
-    second,
-    winnerUserId,
     loserUserId,
-    transferredChoreId: transferredAssignment.choreId,
-    ...transferred,
+    participantUserIds: eligibleWithAssignments,
+    transferredChoreIds,
+    winnerUserIds: eligibleWithAssignments.filter((userId) => userId !== loserUserId),
+    wageredAssignments,
+    assignments: nextAssignments,
+    historyCounts: nextHistoryCounts,
+    choreHistoryCounts: nextChoreHistoryCounts,
   }
 }
 

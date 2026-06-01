@@ -33,6 +33,8 @@ describe('BattlePanel', () => {
         assignmentRows={assignmentRows}
         chores={chores}
         onRunBattle={onRunBattle}
+        onToggleUser={vi.fn()}
+        selectedUserIds={['user-1', 'user-2']}
         users={users}
       />,
     )
@@ -51,12 +53,35 @@ describe('BattlePanel', () => {
         assignmentRows={[assignmentRows[0]]}
         chores={chores}
         onRunBattle={vi.fn()}
+        onToggleUser={vi.fn()}
+        selectedUserIds={['user-1']}
         users={users}
       />,
     )
 
     expect(screen.getByRole('button', { name: 'Start random battle' })).toBeDisabled()
-    expect(screen.getByText('At least two assigned users are needed for battle.')).toBeInTheDocument()
+    expect(screen.getByText('Select at least two assigned users for battle.')).toBeInTheDocument()
+  })
+
+  it('toggles selected battle contestants', async () => {
+    const onToggleUser = vi.fn()
+    const user = userEvent.setup()
+
+    render(
+      <BattlePanel
+        assignments={assignments}
+        assignmentRows={assignmentRows}
+        chores={chores}
+        onRunBattle={vi.fn()}
+        onToggleUser={onToggleUser}
+        selectedUserIds={['user-1']}
+        users={users}
+      />,
+    )
+
+    await user.click(screen.getByLabelText(/Grace/))
+
+    expect(onToggleUser).toHaveBeenCalledWith('user-2')
   })
 
   it('disables battle button when disabled', () => {
@@ -67,6 +92,8 @@ describe('BattlePanel', () => {
         chores={chores}
         disabled
         onRunBattle={vi.fn()}
+        onToggleUser={vi.fn()}
+        selectedUserIds={['user-1', 'user-2']}
         users={users}
       />,
     )
@@ -81,18 +108,19 @@ describe('BattlePanel', () => {
         assignmentRows={assignmentRows}
         chores={chores}
         lastBattleResult={{
-          winnerUserId: 'user-1',
+          winnerUserIds: ['user-1'],
           loserUserId: 'user-2',
-          transferredChoreId: 'chore-1',
-          keptChoreId: 'chore-2',
+          transferredChoreIds: ['chore-1'],
         }}
         onRunBattle={vi.fn()}
+        onToggleUser={vi.fn()}
+        selectedUserIds={['user-1', 'user-2']}
         users={users}
       />,
     )
 
-    expect(screen.getByText('Winner:')).toBeInTheDocument()
+    expect(screen.getByText('Winners:')).toBeInTheDocument()
     expect(screen.getByText('Loser:')).toBeInTheDocument()
-    expect(screen.getByText(/Grace lost the battle and inherited Dishes/)).toBeInTheDocument()
+    expect(screen.getByText(/Grace lost the battle and inherited 1 wagered task/)).toBeInTheDocument()
   })
 })

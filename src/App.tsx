@@ -35,6 +35,7 @@ function App() {
   const [confettiBurstKey, setConfettiBurstKey] = useState(0)
   const [activeView, setActiveView] = useState<NavigationView>('users')
   const [lastBattleResult, setLastBattleResult] = useState<BattleDisplayResult | null>(null)
+  const [selectedBattleUserIds, setSelectedBattleUserIds] = useState<string[]>([])
   const [message, setMessage] = useState('Summon the cast, feed the wheel, and unleash chore destiny.')
 
   useEffect(() => {
@@ -100,6 +101,16 @@ function App() {
   const canSpin = enabledUsers.length > 0 && remainingChores.length > 0 && !isSpinning
   const hasUsers = users.length > 0
   const hasChores = chores.length > 0
+  const assignedBattleUserIds = useMemo(() => new Set(assignments.map((assignment) => assignment.userId)), [assignments])
+  const eligibleBattleUserIds = useMemo(
+    () => users.filter((user) => assignedBattleUserIds.has(user.id) && !user.disabled).map((user) => user.id),
+    [assignedBattleUserIds, users],
+  )
+  const numberOfEligibleBattleUsers = eligibleBattleUserIds.length
+
+  useEffect(() => {
+    setSelectedBattleUserIds((current) => current.filter((userId) => eligibleBattleUserIds.includes(userId)))
+  }, [eligibleBattleUserIds])
 
   const addUser = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -320,6 +331,7 @@ function App() {
     setIsSpinning(false)
     setIsReelSpinning(false)
     setLastBattleResult(null)
+    setSelectedBattleUserIds([])
     setMessage('Round wiped clean. The crowd demands another overproduced catastrophe.')
   }
 
@@ -340,6 +352,7 @@ function App() {
     setIsSpinning(false)
     setIsReelSpinning(false)
     setLastBattleResult(null)
+    setSelectedBattleUserIds([])
     setMessage('Everything has been reset. The arena is empty until you add users and chores.')
   }
 
@@ -376,10 +389,13 @@ function App() {
   const runRandomBattle = () => {
     if (isSpinning) return
 
-    const eligibleUserIds = users
-      .filter((user) => !user.disabled)
-      .filter((user) => assignments.some((assignment) => assignment.userId === user.id))
-      .map((user) => user.id)
+    const eligibleUserIds = selectedBattleUserIds.filter((userId) => eligibleBattleUserIds.includes(userId))
+
+    if (eligibleUserIds.length < 2) {
+      setMessage('🎲 Select at least two assigned contestants for battle.')
+      return
+    }
+
     const result = resolveRandomBattle({
       assignments,
       eligibleUserIds,
@@ -397,20 +413,31 @@ function App() {
     setChoreHistoryCounts(result.choreHistoryCounts)
 
     setLastBattleResult({
-      winnerUserId: result.winnerUserId,
+      winnerUserIds: result.winnerUserIds,
       loserUserId: result.loserUserId,
-      transferredChoreId: result.transferredChoreId,
-      keptChoreId: result.first.userId === result.loserUserId ? result.first.choreId : result.second.choreId,
+      transferredChoreIds: result.transferredChoreIds,
     })
 
-    const winner = users.find((user) => user.id === result.winnerUserId)
+    const winnerNames = result.winnerUserIds
+      .map((userId) => users.find((user) => user.id === userId)?.name)
+      .filter((name): name is string => Boolean(name))
     const loser = users.find((user) => user.id === result.loserUserId)
-    const transferredChore = chores.find((chore) => chore.id === result.transferredChoreId)
+    const transferredChoreNames = result.transferredChoreIds
+      .map((choreId) => chores.find((chore) => chore.id === choreId)?.name)
+      .filter((name): name is string => Boolean(name))
 
     setMessage(
-      winner && loser && transferredChore
-        ? `🎲 ${loser.name} lost the battle. ${winner.name} escaped, and ${transferredChore.name} moved to ${loser.name}.`
-        : '🎲 Battle resolved. The loser inherited the winner’s task.',
+      loser && winnerNames.length > 0 && transferredChoreNames.length > 0
+        ? `🎲 ${loser.name} lost the battle. ${winnerNames.join(', ')} escaped, and ${transferredChoreNames.join(', ')} moved to ${loser.name}.`
+        : '🎲 Battle resolved. The loser inherited the selected winners’ tasks.',
+    )
+  }
+
+  const toggleBattleUser = (userId: string) => {
+    if (isSpinning || !eligibleBattleUserIds.includes(userId)) return
+
+    setSelectedBattleUserIds((current) =>
+      current.includes(userId) ? current.filter((item) => item !== userId) : [...current, userId],
     )
   }
 
@@ -430,8 +457,6 @@ function App() {
     : remainingChores[0]?.name ?? (enabledChores.length === 0 && chores.length > 0 ? 'No enabled chores' : 'All chores assigned')
 
   const assignmentChoreIds = new Set(assignments.map((assignment) => assignment.choreId))
-  const assignedUserIds = new Set(assignments.map((assignment) => assignment.userId))
-  const numberOfEligibleBattleUsers = users.filter((user) => assignedUserIds.has(user.id) && !user.disabled).length
   const userItems = users.map((user) => ({
     id: user.id,
     name: user.name,
@@ -542,6 +567,8 @@ function App() {
             disabled={isSpinning}
             lastBattleResult={lastBattleResult}
             onRunBattle={runRandomBattle}
+            onToggleUser={toggleBattleUser}
+            selectedUserIds={selectedBattleUserIds}
             users={users}
           />
         </section>

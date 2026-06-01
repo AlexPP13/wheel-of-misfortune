@@ -344,6 +344,42 @@
     @apply flex h-10 w-10 items-center justify-center rounded-full border border-[#7b592d] bg-[#dcbf83] text-sm font-black text-stone-900;
   }
 
+  .battle-contestant-card {
+    @apply flex cursor-pointer items-center gap-3 rounded-[1.05rem] border border-[#8f6a3a] bg-[#f0ddb6] p-3.5 transition duration-300 hover:-translate-y-0.5;
+    box-shadow: inset 0 1px 0 rgba(255, 248, 234, 0.44);
+  }
+
+  .battle-contestant-card-selected {
+    border-color: rgba(168, 109, 29, 0.9);
+    background:
+      radial-gradient(circle at top left, rgba(255, 227, 159, 0.32), transparent 38%),
+      linear-gradient(180deg, rgba(240, 208, 130, 0.92), rgba(218, 180, 104, 0.92));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.32),
+      0 0 0 1px rgba(168, 109, 29, 0.22),
+      0 8px 18px rgba(75, 46, 13, 0.14);
+  }
+
+  .battle-contestant-card-disabled {
+    @apply cursor-not-allowed opacity-55 hover:translate-y-0;
+  }
+
+  .battle-contestant-card input {
+    @apply h-5 w-5 shrink-0 accent-[#a87422];
+  }
+
+  .battle-contestant-card__copy {
+    @apply flex min-w-0 flex-col;
+  }
+
+  .battle-contestant-card__name {
+    @apply truncate text-sm font-black uppercase tracking-[0.04em] text-stone-900;
+  }
+
+  .battle-contestant-card__meta {
+    @apply mt-1 text-[0.65rem] font-bold uppercase tracking-[0.2em] text-stone-700/75;
+  }
+
   .list-card {
     @apply flex flex-col gap-4 rounded-[1.2rem] border border-[#8f6a3a] bg-[#f0ddb6] p-4 sm:flex-row sm:items-center sm:justify-between;
     box-shadow: inset 0 1px 0 rgba(255, 248, 234, 0.44);
