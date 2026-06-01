@@ -142,6 +142,7 @@ describe('getStoredState', () => {
       'chore-2': { 'user-1': 0, 'user-2': 0 },
     })
   })
+
 })
 
 describe('chooseFairestAssignments', () => {
@@ -338,5 +339,18 @@ describe('resolveRandomBattle', () => {
     expect(result?.choreHistoryCounts['chore-1']).toEqual({ 'user-1': 0, 'user-2': 1, 'user-3': 0 })
     expect(result?.choreHistoryCounts['chore-3']).toEqual({ 'user-1': 0, 'user-2': 1, 'user-3': 0 })
     expect(result?.choreHistoryCounts['chore-2']).toEqual({ 'user-1': 0, 'user-2': 1, 'user-3': 0 })
+  })
+
+  it('weights loser selection by the number of wagered tasks', () => {
+    const result = resolveRandomBattle({
+      assignments: battleAssignments,
+      eligibleUserIds: ['user-1', 'user-2'],
+      historyCounts,
+      choreHistoryCounts,
+      rng: () => 0.6,
+    })
+
+    expect(result?.loserUserId).toBe('user-1')
+    expect(result?.transferredChoreIds).toEqual(['chore-2'])
   })
 })

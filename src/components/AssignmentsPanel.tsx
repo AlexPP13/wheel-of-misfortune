@@ -11,7 +11,12 @@ type AssignmentsPanelProps = {
   users?: User[]
 }
 
-function AssignmentsPanel({ assignmentRows, disabled = false, onSwitchAssignment, users = [] }: AssignmentsPanelProps) {
+function AssignmentsPanel({
+  assignmentRows,
+  disabled = false,
+  onSwitchAssignment,
+  users = [],
+}: AssignmentsPanelProps) {
   const [switchingChoreId, setSwitchingChoreId] = useState<string | null>(null)
 
   return (

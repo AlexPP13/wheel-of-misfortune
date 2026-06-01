@@ -51,4 +51,5 @@ describe('AssignmentsPanel switching', () => {
 
     expect(screen.getByRole('button', { name: 'Switch Dishes to another user' })).toBeDisabled()
   })
+
 })

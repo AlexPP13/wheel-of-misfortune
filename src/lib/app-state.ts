@@ -162,8 +162,23 @@ export function transferAssignmentOwner({
   }
 }
 
-function pickRandom<T>(items: T[], rng: () => number): T {
-  return items[Math.floor(rng() * items.length)]
+function pickWeightedBattleLoser(userIds: string[], assignments: Assignment[], rng: () => number) {
+  const weightedUsers = userIds.map((userId) => ({
+    userId,
+    weight: assignments.filter((assignment) => assignment.userId === userId).length,
+  }))
+  const totalWeight = weightedUsers.reduce((total, user) => total + user.weight, 0)
+  let roll = rng() * totalWeight
+
+  for (const user of weightedUsers) {
+    roll -= user.weight
+
+    if (roll <= 0) {
+      return user.userId
+    }
+  }
+
+  return weightedUsers[weightedUsers.length - 1].userId
 }
 
 export function resolveRandomBattle({
@@ -187,8 +202,8 @@ export function resolveRandomBattle({
     return null
   }
 
-  const loserUserId = pickRandom(eligibleWithAssignments, rng)
   const wageredAssignments = assignments.filter((assignment) => eligibleWithAssignments.includes(assignment.userId))
+  const loserUserId = pickWeightedBattleLoser(eligibleWithAssignments, wageredAssignments, rng)
   const transferredChoreIds: string[] = []
   let nextAssignments = assignments
   let nextHistoryCounts = historyCounts
