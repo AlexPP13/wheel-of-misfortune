@@ -10,12 +10,13 @@ export type NavigationView = 'users' | 'chores' | 'play' | 'fairness'
 
 type NavigationTabsProps = {
   activeView: NavigationView
+  disabled?: boolean
   items: NavigationItem[]
   onChange: (view: NavigationView) => void
   onResetEverything: () => void
 }
 
-function NavigationTabs({ activeView, items, onChange, onResetEverything }: NavigationTabsProps) {
+function NavigationTabs({ activeView, disabled = false, items, onChange, onResetEverything }: NavigationTabsProps) {
   return (
     <nav className="glass-panel mb-4 p-2.5 sm:p-3" aria-label="Wizard steps">
       <div className="mb-2 flex items-center justify-between gap-4 px-2">
@@ -23,7 +24,12 @@ function NavigationTabs({ activeView, items, onChange, onResetEverything }: Navi
           <p className="text-xs font-semibold uppercase tracking-[0.32em] text-stone-700/75">Setup flow</p>
           <h2 className="mt-1 text-xl font-black uppercase tracking-[-0.03em] text-stone-900">Wheel wizard</h2>
         </div>
-        <button type="button" className="dramatic-button dramatic-button-danger dramatic-button-small" onClick={onResetEverything}>
+        <button
+          type="button"
+          className="dramatic-button dramatic-button-danger dramatic-button-small"
+          onClick={onResetEverything}
+          disabled={disabled}
+        >
           Complete reset
         </button>
       </div>

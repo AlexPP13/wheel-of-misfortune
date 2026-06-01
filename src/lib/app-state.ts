@@ -43,7 +43,7 @@ export function getStoredState(): PersistedState {
             disabled: Boolean(chore.disabled),
           }))
       : fallback.chores
-    const assignments = Array.isArray(parsed.assignments) ? parsed.assignments : []
+    const assignments = sanitizeAssignments(parsed.assignments, users, chores)
     const incomingCounts = parsed.historyCounts ?? {}
     const incomingChoreHistoryCounts = parsed.choreHistoryCounts ?? {}
 
@@ -69,6 +69,37 @@ export function getStoredState(): PersistedState {
   } catch {
     return fallback
   }
+}
+
+export function sanitizeAssignments(assignments: unknown, users: User[], chores: Chore[]): Assignment[] {
+  if (!Array.isArray(assignments)) {
+    return []
+  }
+
+  const userIds = new Set(users.map((user) => user.id))
+  const choreIds = new Set(chores.map((chore) => chore.id))
+  const seenChoreIds = new Set<string>()
+
+  return assignments.filter((assignment): assignment is Assignment => {
+    if (!assignment || typeof assignment !== 'object') {
+      return false
+    }
+
+    const candidate = assignment as Partial<Assignment>
+
+    if (
+      typeof candidate.userId !== 'string' ||
+      typeof candidate.choreId !== 'string' ||
+      !userIds.has(candidate.userId) ||
+      !choreIds.has(candidate.choreId) ||
+      seenChoreIds.has(candidate.choreId)
+    ) {
+      return false
+    }
+
+    seenChoreIds.add(candidate.choreId)
+    return true
+  })
 }
 
 export function chooseFairestUser(

@@ -61,8 +61,9 @@ function EditableListPanel({
           onChange={(event) => onInputChange(event.target.value)}
           placeholder={inputPlaceholder}
           aria-label={inputLabel}
+          disabled={disabled}
         />
-        <button type="submit" className="dramatic-button dramatic-button-emerald">
+        <button type="submit" className="dramatic-button dramatic-button-emerald" disabled={disabled}>
           {buttonLabel}
         </button>
       </form>

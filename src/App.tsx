@@ -99,6 +99,9 @@ function App() {
 
   const addUser = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+
+    if (isSpinning) return
+
     const trimmed = userName.trim()
 
     if (!trimmed) return
@@ -123,6 +126,9 @@ function App() {
 
   const addChore = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+
+    if (isSpinning) return
+
     const trimmed = choreName.trim()
 
     if (!trimmed) return
@@ -140,6 +146,8 @@ function App() {
   }
 
   const removeUser = (userId: string) => {
+    if (isSpinning) return
+
     setUsers((current) => current.filter((user) => user.id !== userId))
     setAssignments((current) => current.filter((assignment) => assignment.userId !== userId))
     setHistoryCounts((current) => {
@@ -165,6 +173,8 @@ function App() {
   }
 
   const toggleUserDisabled = (userId: string) => {
+    if (isSpinning) return
+
     setUsers((current) => current.map((user) => (user.id === userId ? { ...user, disabled: !user.disabled } : user)))
 
     if (activeUserId === userId) {
@@ -173,6 +183,8 @@ function App() {
   }
 
   const removeChore = (choreId: string) => {
+    if (isSpinning) return
+
     setChores((current) => current.filter((chore) => chore.id !== choreId))
     setAssignments((current) => current.filter((assignment) => assignment.choreId !== choreId))
     setChoreHistoryCounts((current) => {
@@ -187,6 +199,8 @@ function App() {
   }
 
   const toggleChoreDisabled = (choreId: string) => {
+    if (isSpinning) return
+
     setChores((current) => current.map((chore) => (chore.id === choreId ? { ...chore, disabled: !chore.disabled } : chore)))
 
     if (currentChoreId === choreId) {
@@ -293,6 +307,8 @@ function App() {
   }
 
   const resetRound = () => {
+    if (isSpinning) return
+
     carnivalAudioRef.current?.stop()
     setAssignments([])
     setCurrentChoreId(null)
@@ -303,6 +319,8 @@ function App() {
   }
 
   const resetEverything = () => {
+    if (isSpinning) return
+
     carnivalAudioRef.current?.stop()
     localStorage.removeItem(STORAGE_KEY)
     const freshState = createDefaultState()
@@ -458,6 +476,7 @@ function App() {
     <AppShell>
       <NavigationTabs
         activeView={activeView}
+        disabled={isSpinning}
         items={viewItems}
         onChange={setActiveView}
         onResetEverything={resetEverything}
