@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import type { FootballPrediction, FootballResult, User, WorldCupMatch } from '../types/app'
-import { buildFootballLeaderboard, getFootballPoolDayWindow, isMatchInFootballPoolDay, scorePrediction } from './football-pool'
+import { buildFootballLeaderboard, getLocalDateKey, getMatchDateKeys, isMatchOnDate, scorePrediction } from './football-pool'
 
 const users: User[] = [
   { id: 'u1', name: 'Ada', disabled: false },
@@ -113,20 +113,17 @@ describe('buildFootballLeaderboard', () => {
   })
 })
 
-describe('football pool day window', () => {
-  it('starts a new slate at 09:00', () => {
-    const window = getFootballPoolDayWindow(new Date('2026-06-16T09:00:00.000Z'))
-
-    expect(window.start.toISOString()).toBe('2026-06-16T09:00:00.000Z')
-    expect(window.end.toISOString()).toBe('2026-06-17T09:00:00.000Z')
+describe('football pool match dates', () => {
+  it('creates local date keys for calendar filtering', () => {
+    expect(getLocalDateKey(new Date('2026-06-16T12:00:00.000Z'))).toBe('2026-06-16')
   })
 
-  it('keeps 02:00 matches in the previous morning slate', () => {
-    expect(
-      isMatchInFootballPoolDay(
-        { ...matches[0], kickoff: '2026-06-17T02:00:00.000Z' },
-        new Date('2026-06-16T10:00:00.000Z'),
-      ),
-    ).toBe(true)
+  it('returns sorted unique dates with matches', () => {
+    expect(getMatchDateKeys(matches)).toEqual(['2026-06-11', '2026-06-12'])
+  })
+
+  it('filters matches by calendar date', () => {
+    expect(isMatchOnDate(matches[0], '2026-06-11')).toBe(true)
+    expect(isMatchOnDate(matches[0], '2026-06-12')).toBe(false)
   })
 })

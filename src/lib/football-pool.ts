@@ -17,25 +17,24 @@ export type FootballLeaderboardRow = {
   predictionsSubmitted: number
 }
 
-export function getFootballPoolDayWindow(now = new Date()): { start: Date; end: Date } {
-  const start = new Date(now)
-  start.setHours(9, 0, 0, 0)
+export function getLocalDateKey(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
 
-  if (now < start) {
-    start.setDate(start.getDate() - 1)
-  }
-
-  const end = new Date(start)
-  end.setDate(end.getDate() + 1)
-
-  return { start, end }
+  return `${year}-${month}-${day}`
 }
 
-export function isMatchInFootballPoolDay(match: WorldCupMatch, now = new Date()): boolean {
-  const { start, end } = getFootballPoolDayWindow(now)
-  const kickoff = new Date(match.kickoff)
+export function getMatchDateKey(match: WorldCupMatch): string {
+  return getLocalDateKey(new Date(match.kickoff))
+}
 
-  return kickoff >= start && kickoff < end
+export function getMatchDateKeys(matches: WorldCupMatch[]): string[] {
+  return Array.from(new Set(matches.map(getMatchDateKey))).sort()
+}
+
+export function isMatchOnDate(match: WorldCupMatch, dateKey: string): boolean {
+  return getMatchDateKey(match) === dateKey
 }
 
 export function getOutcome(homeScore: number, awayScore: number): FootballOutcome {
