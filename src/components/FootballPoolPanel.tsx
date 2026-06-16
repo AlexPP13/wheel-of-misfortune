@@ -363,7 +363,7 @@ function FootballPoolPanel({
                   className={[
                     'view-tab w-full',
                     isSelected ? 'view-tab-active' : '',
-                    complete ? 'border-[#7b6f2d] bg-[#d7d39d]' : '',
+                    complete ? 'border-[#7b6f2d] bg-[#d7d39d]' : 'border-[#8d4930] bg-[#e7bea5]',
                   ]
                     .filter(Boolean)
                     .join(' ')}
@@ -372,7 +372,14 @@ function FootballPoolPanel({
                   <span className="view-tab__copy">
                     <span className="view-tab__meta">
                       <span className="view-tab__step">{complete ? 'Complete' : 'Needs picks'}</span>
-                      <span className={['view-tab__status', complete ? 'view-tab__status-ready' : ''].filter(Boolean).join(' ')}>
+                      <span
+                        className={[
+                          'view-tab__status',
+                          complete ? 'view-tab__status-ready' : 'border-[#8d4930] bg-[#d9a087] text-[#3a160d]',
+                        ]
+                          .filter(Boolean)
+                          .join(' ')}
+                      >
                         {submitted}/{visibleMatches.length}
                       </span>
                     </span>
@@ -444,7 +451,9 @@ function FootballPoolPanel({
                 const matchStatus = getMatchStatus(match.kickoff, liveTime, fifaApiMatchesByNumber.get(match.matchNumber))
                 const locked = new Date(match.kickoff).getTime() <= nowTime
                 const earned = prediction && result ? scorePrediction(prediction, result) : null
-                const scoreTone = earned ? (earned.points > 0 ? 'correct' : 'wrong') : 'pending'
+                const hasResult = Boolean(result && matchStatus.started)
+                const points = earned?.points ?? (hasResult ? 0 : null)
+                const scoreTone = hasResult ? (points && points > 0 ? 'correct' : 'wrong') : 'pending'
                 const resultChipClass = [
                   'count-pill',
                   scoreTone === 'correct'
@@ -482,7 +491,7 @@ function FootballPoolPanel({
                         {matchStatus.minute ? `${matchStatus.label} ${matchStatus.minute}'` : matchStatus.label}
                         </span>
                         {locked ? <span className="count-pill">Locked</span> : <span className="count-pill">Open</span>}
-                        {earned ? <span className="count-pill">{earned.points} pt</span> : null}
+                        {points !== null ? <span className="count-pill">{points} pt</span> : null}
                       </div>
                     </div>
 
@@ -492,7 +501,7 @@ function FootballPoolPanel({
                         {matchStatus.started ? (
                           <span className={resultChipClass}>
                             {result ? `Result ${result.homeScore}-${result.awayScore}` : 'Result pending'}
-                            {earned ? ` · ${earned.points} pt` : ''}
+                            {points !== null ? ` · ${points} pt` : ''}
                           </span>
                         ) : null}
                       </div>
