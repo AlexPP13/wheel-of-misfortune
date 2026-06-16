@@ -18,6 +18,7 @@ import {
 } from './lib/app-state'
 import { playBattleSpectacle } from './lib/battleAudio'
 import { CarnivalAudio } from './lib/carnivalAudio'
+import { fetchWorldCup2026Matches, type FifaApiMatch } from './lib/world-cup-api'
 import type {
   Assignment,
   Chore,
@@ -27,6 +28,7 @@ import type {
   HistoryStats,
   PersistedState,
   User,
+  WorldCupMatch,
 } from './types/app'
 
 function App() {
@@ -39,6 +41,9 @@ function App() {
   const [choreHistoryCounts, setChoreHistoryCounts] = useState<ChoreHistoryStats>(initialState.choreHistoryCounts)
   const [footballPredictions, setFootballPredictions] = useState<FootballPrediction[]>(initialState.footballPredictions)
   const [footballResults, setFootballResults] = useState<FootballResult[]>(initialState.footballResults)
+  const [worldCupMatches, setWorldCupMatches] = useState<WorldCupMatch[]>([])
+  const [fifaApiMatches, setFifaApiMatches] = useState<FifaApiMatch[]>([])
+  const [worldCupScheduleError, setWorldCupScheduleError] = useState<string | null>(null)
   const [userName, setUserName] = useState('')
   const [choreName, setChoreName] = useState('')
   const [isSpinning, setIsSpinning] = useState(false)
@@ -83,6 +88,33 @@ function App() {
     return () => {
       void carnivalAudioRef.current?.dispose()
       carnivalAudioRef.current = null
+    }
+  }, [])
+
+  useEffect(() => {
+    const controller = new AbortController()
+
+    async function refreshWorldCupMatches() {
+      try {
+        const next = await fetchWorldCup2026Matches(controller.signal)
+        setWorldCupMatches(next.matches)
+        setFifaApiMatches(next.fifaMatches)
+        setWorldCupScheduleError(null)
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          return
+        }
+
+        setWorldCupScheduleError('Could not refresh FIFA schedule/results right now.')
+      }
+    }
+
+    void refreshWorldCupMatches()
+    const intervalId = window.setInterval(() => void refreshWorldCupMatches(), 60000)
+
+    return () => {
+      controller.abort()
+      window.clearInterval(intervalId)
     }
   }, [])
 
@@ -624,10 +656,13 @@ function App() {
       return (
         <section className="w-full">
           <FootballPoolPanel
+            fifaApiMatches={fifaApiMatches}
+            matches={worldCupMatches}
             onUpsertPrediction={upsertFootballPrediction}
             onUpsertResult={upsertFootballResult}
             predictions={footballPredictions}
             results={footballResults}
+            resultsError={worldCupScheduleError}
             users={users}
           />
         </section>

@@ -1,4 +1,3 @@
-import { WORLD_CUP_2026_MATCHES } from '../data/world-cup-2026'
 import type {
   Assignment,
   Chore,
@@ -78,9 +77,8 @@ export function getStoredState(): PersistedState {
       return acc
     }, {})
 
-    const matchIds = new Set(WORLD_CUP_2026_MATCHES.map((match) => match.id))
-    const footballPredictions = sanitizeFootballPredictions(parsed.footballPredictions, users, matchIds)
-    const footballResults = sanitizeFootballResults(parsed.footballResults, matchIds)
+    const footballPredictions = sanitizeFootballPredictions(parsed.footballPredictions, users)
+    const footballResults = sanitizeFootballResults(parsed.footballResults)
 
     return { users, chores, assignments, historyCounts, choreHistoryCounts, footballPredictions, footballResults }
   } catch {
@@ -95,7 +93,6 @@ function isValidScore(score: unknown): score is number {
 function sanitizeFootballPredictions(
   predictions: unknown,
   users: User[],
-  matchIds: Set<string>,
 ): FootballPrediction[] {
   if (!Array.isArray(predictions)) {
     return []
@@ -117,7 +114,6 @@ function sanitizeFootballPredictions(
       typeof candidate.matchId !== 'string' ||
       typeof candidate.updatedAt !== 'string' ||
       !userIds.has(candidate.userId) ||
-      !matchIds.has(candidate.matchId) ||
       !isValidScore(candidate.homeScore) ||
       !isValidScore(candidate.awayScore) ||
       seen.has(key)
@@ -130,7 +126,7 @@ function sanitizeFootballPredictions(
   })
 }
 
-function sanitizeFootballResults(results: unknown, matchIds: Set<string>): FootballResult[] {
+function sanitizeFootballResults(results: unknown): FootballResult[] {
   if (!Array.isArray(results)) {
     return []
   }
@@ -147,7 +143,6 @@ function sanitizeFootballResults(results: unknown, matchIds: Set<string>): Footb
     if (
       typeof candidate.matchId !== 'string' ||
       typeof candidate.updatedAt !== 'string' ||
-      !matchIds.has(candidate.matchId) ||
       !isValidScore(candidate.homeScore) ||
       !isValidScore(candidate.awayScore) ||
       seen.has(candidate.matchId)

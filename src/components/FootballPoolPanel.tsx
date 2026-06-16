@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 
-import { WORLD_CUP_2026_MATCHES } from '../data/world-cup-2026'
 import {
   buildFootballLeaderboard,
   getLocalDateKey,
@@ -8,6 +7,7 @@ import {
   isMatchOnDate,
   scorePrediction,
 } from '../lib/football-pool'
+import type { FifaApiMatch } from '../lib/world-cup-api'
 import type { FootballPrediction, FootballResult, User, WorldCupMatch } from '../types/app'
 import { panelMotion } from './panelMotion'
 import { motion } from 'framer-motion'
@@ -18,18 +18,10 @@ type FootballPoolPanelProps = {
   results: FootballResult[]
   onUpsertPrediction: (userId: string, matchId: string, homeScore: number, awayScore: number) => void
   onUpsertResult: (matchId: string, homeScore: number, awayScore: number) => void
+  fifaApiMatches: FifaApiMatch[]
+  matches: WorldCupMatch[]
+  resultsError: string | null
 }
-
-type FifaApiMatch = {
-  AwayTeamScore: number | null
-  HomeTeamScore: number | null
-  MatchNumber: number
-  MatchStatus: number
-  MatchTime: string | null
-}
-
-const FIFA_RESULTS_URL =
-  'https://api.fifa.com/api/v3/calendar/matches?language=en&count=200&idCompetition=17&idSeason=285023'
 
 function formatKickoff(kickoff: string) {
   return new Intl.DateTimeFormat('en-GB', {
@@ -126,12 +118,13 @@ function FootballPoolPanel({
   results,
   onUpsertPrediction,
   onUpsertResult,
+  fifaApiMatches,
+  matches,
+  resultsError,
 }: FootballPoolPanelProps) {
   const activeUsers = useMemo(() => users.filter((user) => !user.disabled), [users])
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const [liveTime, setLiveTime] = useState(() => new Date())
-  const [fifaApiMatches, setFifaApiMatches] = useState<FifaApiMatch[]>([])
-  const [resultsError, setResultsError] = useState<string | null>(null)
   const selectedUser = activeUsers.find((user) => user.id === selectedUserId) ?? null
 
   useEffect(() => {
@@ -140,58 +133,28 @@ function FootballPoolPanel({
     return () => window.clearInterval(intervalId)
   }, [])
 
-  useEffect(() => {
-    const controller = new AbortController()
-
-    async function fetchResults() {
-      try {
-        const response = await fetch(FIFA_RESULTS_URL, { signal: controller.signal })
-
-        if (!response.ok) {
-          throw new Error(`FIFA results request failed: ${response.status}`)
-        }
-
-        const data = (await response.json()) as { Results?: FifaApiMatch[] }
-        setFifaApiMatches(Array.isArray(data.Results) ? data.Results : [])
-        setResultsError(null)
-      } catch (error) {
-        if (error instanceof DOMException && error.name === 'AbortError') {
-          return
-        }
-
-        setResultsError('Could not refresh FIFA results right now.')
-      }
-    }
-
-    void fetchResults()
-    const intervalId = window.setInterval(() => void fetchResults(), 60000)
-
-    return () => {
-      controller.abort()
-      window.clearInterval(intervalId)
-    }
-  }, [])
-
   const leaderboard = useMemo(
-    () => buildFootballLeaderboard(activeUsers, predictions, results, WORLD_CUP_2026_MATCHES),
-    [activeUsers, predictions, results],
+    () => buildFootballLeaderboard(activeUsers, predictions, results, matches),
+    [activeUsers, matches, predictions, results],
   )
-  const matchDateKeys = useMemo(() => getMatchDateKeys(WORLD_CUP_2026_MATCHES), [])
+  const matchDateKeys = useMemo(() => getMatchDateKeys(matches), [matches])
   const todayKey = getLocalDateKey(liveTime)
   const fallbackDateKey = todayKey
   const [selectedDateKey, setSelectedDateKey] = useState(() => getDefaultMatchDateKey())
   const [calendarMonthKey, setCalendarMonthKey] = useState(() => getMonthKey(dateKeyToDate(getDefaultMatchDateKey())))
   const effectiveDateKey = selectedDateKey || fallbackDateKey
   const nowTime = liveTime.getTime()
-  const visibleMatches = WORLD_CUP_2026_MATCHES.filter((match) => isMatchOnDate(match, effectiveDateKey))
+  const visibleMatches = matches.filter((match) => isMatchOnDate(match, effectiveDateKey))
   const visibleMatchIds = new Set(visibleMatches.map((match) => match.id))
   const fifaApiMatchesByNumber = new Map(fifaApiMatches.map((match) => [match.MatchNumber, match]))
   const matchDateCounts = new Map(
-    matchDateKeys.map((dateKey) => [dateKey, WORLD_CUP_2026_MATCHES.filter((match) => isMatchOnDate(match, dateKey)).length]),
+    matchDateKeys.map((dateKey) => [dateKey, matches.filter((match) => isMatchOnDate(match, dateKey)).length]),
   )
   const currentMonthKey = getMonthKey(dateKeyToDate(todayKey))
-  const firstMatchMonthKey = getMonthKey(dateKeyToDate(matchDateKeys[0]))
-  const lastMatchMonthKey = getMonthKey(dateKeyToDate(matchDateKeys[matchDateKeys.length - 1]))
+  const firstMatchMonthKey = matchDateKeys[0] ? getMonthKey(dateKeyToDate(matchDateKeys[0])) : currentMonthKey
+  const lastMatchMonthKey = matchDateKeys[matchDateKeys.length - 1]
+    ? getMonthKey(dateKeyToDate(matchDateKeys[matchDateKeys.length - 1]))
+    : currentMonthKey
   const minMonthKey = firstMatchMonthKey < currentMonthKey ? firstMatchMonthKey : currentMonthKey
   const maxMonthKey = lastMatchMonthKey > currentMonthKey ? lastMatchMonthKey : currentMonthKey
   const canGoPreviousMonth = calendarMonthKey > minMonthKey
