@@ -6,6 +6,7 @@ import ChoreListPanel from './components/ChoreListPanel'
 import DoomDomeSection from './components/DoomDomeSection'
 import EditableListPanel from './components/EditableListPanel'
 import FairnessRadar from './components/FairnessRadar'
+import FootballPoolPanel from './components/FootballPoolPanel'
 import NavigationTabs, { type NavigationView } from './components/NavigationTabs'
 import {
   STORAGE_KEY,
@@ -17,7 +18,16 @@ import {
 } from './lib/app-state'
 import { playBattleSpectacle } from './lib/battleAudio'
 import { CarnivalAudio } from './lib/carnivalAudio'
-import type { Assignment, Chore, ChoreHistoryStats, HistoryStats, PersistedState, User } from './types/app'
+import type {
+  Assignment,
+  Chore,
+  ChoreHistoryStats,
+  FootballPrediction,
+  FootballResult,
+  HistoryStats,
+  PersistedState,
+  User,
+} from './types/app'
 
 function App() {
   const carnivalAudioRef = useRef<CarnivalAudio | null>(null)
@@ -27,6 +37,8 @@ function App() {
   const [assignments, setAssignments] = useState<Assignment[]>(initialState.assignments)
   const [historyCounts, setHistoryCounts] = useState<HistoryStats>(initialState.historyCounts)
   const [choreHistoryCounts, setChoreHistoryCounts] = useState<ChoreHistoryStats>(initialState.choreHistoryCounts)
+  const [footballPredictions, setFootballPredictions] = useState<FootballPrediction[]>(initialState.footballPredictions)
+  const [footballResults, setFootballResults] = useState<FootballResult[]>(initialState.footballResults)
   const [userName, setUserName] = useState('')
   const [choreName, setChoreName] = useState('')
   const [isSpinning, setIsSpinning] = useState(false)
@@ -61,9 +73,11 @@ function App() {
         assignments,
         historyCounts: sanitizedCounts,
         choreHistoryCounts: sanitizedChoreHistoryCounts,
+        footballPredictions,
+        footballResults,
       }),
     )
-  }, [users, chores, assignments, historyCounts, choreHistoryCounts])
+  }, [users, chores, assignments, historyCounts, choreHistoryCounts, footballPredictions, footballResults])
 
   useEffect(() => {
     return () => {
@@ -166,6 +180,7 @@ function App() {
 
     setUsers((current) => current.filter((user) => user.id !== userId))
     setAssignments((current) => current.filter((assignment) => assignment.userId !== userId))
+    setFootballPredictions((current) => current.filter((prediction) => prediction.userId !== userId))
     setHistoryCounts((current) => {
       const next = { ...current }
       delete next[userId]
@@ -348,6 +363,8 @@ function App() {
     setAssignments(freshState.assignments)
     setHistoryCounts(freshState.historyCounts)
     setChoreHistoryCounts(freshState.choreHistoryCounts)
+    setFootballPredictions(freshState.footballPredictions)
+    setFootballResults(freshState.footballResults)
     setCurrentChoreId(null)
     setActiveUserId(null)
     setIsSpinning(false)
@@ -446,6 +463,40 @@ function App() {
     )
   }
 
+  const upsertFootballPrediction = (userId: string, matchId: string, homeScore: number, awayScore: number) => {
+    const user = users.find((item) => item.id === userId)
+
+    if (!user || user.disabled || homeScore < 0 || awayScore < 0 || !Number.isInteger(homeScore) || !Number.isInteger(awayScore)) {
+      return
+    }
+
+    const updatedAt = new Date().toISOString()
+    setFootballPredictions((current) => {
+      const nextPrediction = { userId, matchId, homeScore, awayScore, updatedAt }
+      const exists = current.some((prediction) => prediction.userId === userId && prediction.matchId === matchId)
+
+      return exists
+        ? current.map((prediction) =>
+            prediction.userId === userId && prediction.matchId === matchId ? nextPrediction : prediction,
+          )
+        : [...current, nextPrediction]
+    })
+  }
+
+  const upsertFootballResult = (matchId: string, homeScore: number, awayScore: number) => {
+    if (homeScore < 0 || awayScore < 0 || !Number.isInteger(homeScore) || !Number.isInteger(awayScore)) {
+      return
+    }
+
+    const updatedAt = new Date().toISOString()
+    setFootballResults((current) => {
+      const nextResult = { matchId, homeScore, awayScore, updatedAt }
+      const exists = current.some((result) => result.matchId === matchId)
+
+      return exists ? current.map((result) => (result.matchId === matchId ? nextResult : result)) : [...current, nextResult]
+    })
+  }
+
   useEffect(() => {
     if (users.length > 0 && enabledUsers.length === 0) {
       setMessage('All users are disabled for this round. Enable at least one to spin the wheel.')
@@ -487,25 +538,32 @@ function App() {
       step: 2,
     },
     {
+      id: 'pool' as const,
+      label: 'WK 2026 Pool',
+      badge: footballPredictions.length,
+      ready: hasUsers,
+      step: 0,
+    },
+    {
       id: 'play' as const,
       label: 'Play',
       badge: assignments.length,
       ready: hasUsers && hasChores,
-      step: 3,
+      step: 4,
     },
     {
       id: 'battle' as const,
       label: 'Battle',
       badge: numberOfEligibleBattleUsers,
       ready: numberOfEligibleBattleUsers >= 2,
-      step: 4,
+      step: 5,
     },
     {
       id: 'fairness' as const,
       label: 'Fairness',
       badge: users.length,
       ready: hasUsers && hasChores,
-      step: 5,
+      step: 6,
     },
   ]
 
@@ -556,6 +614,20 @@ function App() {
             chores={chores}
             choreHistoryCounts={choreHistoryCounts}
             historyCounts={historyCounts}
+            users={users}
+          />
+        </section>
+      )
+    }
+
+    if (activeView === 'pool') {
+      return (
+        <section className="w-full">
+          <FootballPoolPanel
+            onUpsertPrediction={upsertFootballPrediction}
+            onUpsertResult={upsertFootballResult}
+            predictions={footballPredictions}
+            results={footballResults}
             users={users}
           />
         </section>
