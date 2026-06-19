@@ -388,6 +388,7 @@ function FootballPoolPanel({
             </h3>
           <p className="mt-1 text-sm font-semibold text-stone-700/80">{formatDateKey(effectiveDateKey)} · only matches on this calendar date.</p>
           <p className="mt-1 text-sm font-semibold text-stone-700/80">Locked after kickoff. Results are local and visible to everyone on this device.</p>
+          <p className="mt-1 text-sm font-semibold text-stone-700/80">Scoring: 3 points for the exact score, 1 point for the correct winner or draw.</p>
           </div>
           {selectedUser ? (
             <button type="button" className="dramatic-button dramatic-button-muted dramatic-button-small" onClick={() => setSelectedUserId(null)}>

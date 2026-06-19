@@ -64,6 +64,30 @@ describe('scorePrediction', () => {
       outcome: false,
     })
   })
+
+  it('returns 3 total points for an exact draw score', () => {
+    expect(scorePrediction(prediction('u1', 'm1', 1, 1), result('m1', 1, 1))).toEqual({
+      points: 3,
+      exact: true,
+      outcome: true,
+    })
+  })
+
+  it('returns 1 point for a correct draw outcome but wrong score', () => {
+    expect(scorePrediction(prediction('u1', 'm1', 0, 0), result('m1', 1, 1))).toEqual({
+      points: 1,
+      exact: false,
+      outcome: true,
+    })
+  })
+
+  it('returns 0 points for predicting a draw when the match has a winner', () => {
+    expect(scorePrediction(prediction('u1', 'm1', 1, 1), result('m1', 2, 1))).toEqual({
+      points: 0,
+      exact: false,
+      outcome: false,
+    })
+  })
 })
 
 describe('buildFootballLeaderboard', () => {
