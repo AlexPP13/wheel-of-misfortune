@@ -122,10 +122,9 @@ function FootballPoolPanel({
   matches,
   resultsError,
 }: FootballPoolPanelProps) {
-  const activeUsers = useMemo(() => users.filter((user) => !user.disabled), [users])
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const [liveTime, setLiveTime] = useState(() => new Date())
-  const selectedUser = activeUsers.find((user) => user.id === selectedUserId) ?? null
+  const selectedUser = users.find((user) => user.id === selectedUserId) ?? null
 
   useEffect(() => {
     const intervalId = window.setInterval(() => setLiveTime(new Date()), 30000)
@@ -134,8 +133,8 @@ function FootballPoolPanel({
   }, [])
 
   const leaderboard = useMemo(
-    () => buildFootballLeaderboard(activeUsers, predictions, results, matches),
-    [activeUsers, matches, predictions, results],
+    () => buildFootballLeaderboard(users, predictions, results, matches),
+    [matches, predictions, results, users],
   )
   const matchDateKeys = useMemo(() => getMatchDateKeys(matches), [matches])
   const todayKey = getLocalDateKey(liveTime)
@@ -313,8 +312,8 @@ function FootballPoolPanel({
         </div>
 
         <div className="mb-5 space-y-3">
-          {activeUsers.length > 0 ? (
-            activeUsers.map((user) => {
+          {users.length > 0 ? (
+            users.map((user) => {
               const submitted = dailyPredictionCounts.get(user.id) ?? 0
               const complete = visibleMatches.length > 0 && submitted >= visibleMatches.length
               const isSelected = selectedUser?.id === user.id
@@ -353,7 +352,7 @@ function FootballPoolPanel({
               )
             })
           ) : (
-            <div className="empty-state">All players are disabled for this round.</div>
+            <div className="empty-state">No users available for this pool.</div>
           )}
         </div>
 
