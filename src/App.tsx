@@ -386,6 +386,12 @@ function App() {
   const resetEverything = () => {
     if (isSpinning) return
 
+    const confirmed = window.confirm(
+      'This will delete all users, chores, assignments, history, and football pool picks. Continue?',
+    )
+
+    if (!confirmed) return
+
     carnivalAudioRef.current?.stop()
     localStorage.removeItem(STORAGE_KEY)
     const freshState = createDefaultState()
