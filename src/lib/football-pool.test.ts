@@ -116,6 +116,26 @@ describe('buildFootballLeaderboard', () => {
     expect(row).toMatchObject({ totalPoints: 0, exactScores: 0, correctOutcomes: 0, predictionsSubmitted: 1 })
   })
 
+  it('includes disabled users in football pool scoring', () => {
+    const leaderboard = buildFootballLeaderboard(
+      [{ id: 'u1', name: 'Ada', disabled: true }],
+      [prediction('u1', 'm1', 2, 0)],
+      [result('m1', 2, 0)],
+      matches,
+    )
+
+    expect(leaderboard).toEqual([
+      {
+        userId: 'u1',
+        userName: 'Ada',
+        totalPoints: 3,
+        exactScores: 1,
+        correctOutcomes: 1,
+        predictionsSubmitted: 1,
+      },
+    ])
+  })
+
   it('does not crash on removed users or unknown matches', () => {
     const leaderboard = buildFootballLeaderboard(
       users.slice(0, 1),

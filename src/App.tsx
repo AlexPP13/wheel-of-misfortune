@@ -504,7 +504,7 @@ function App() {
   const upsertFootballPrediction = (userId: string, matchId: string, homeScore: number, awayScore: number) => {
     const user = users.find((item) => item.id === userId)
 
-    if (!user || user.disabled || homeScore < 0 || awayScore < 0 || !Number.isInteger(homeScore) || !Number.isInteger(awayScore)) {
+    if (!user || homeScore < 0 || awayScore < 0 || !Number.isInteger(homeScore) || !Number.isInteger(awayScore)) {
       return
     }
 
