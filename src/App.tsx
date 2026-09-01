@@ -303,7 +303,6 @@ function App() {
         setActiveUserId(chosenUser.id)
         setIsReelSpinning(false)
         carnivalAudioRef.current?.stop()
-        await carnivalAudioRef.current?.playBell()
 
         producedAssignments.push(nextAssignment)
         nextCounts = {
@@ -321,6 +320,9 @@ function App() {
         setAssignments((current) => [...current, nextAssignment])
         setHistoryCounts(nextCounts)
         setChoreHistoryCounts(nextChoreCounts)
+        // Start the jackpot chime just before this state update so the sound and
+        // the next confetti render begin together instead of playing in sequence.
+        void carnivalAudioRef.current?.playBell()
         setConfettiBurstKey((current) => current + 1)
         setMessage(`🔥 ${chosenUser.name} has been dramatically volunteered for ${chore.name}.`)
 
