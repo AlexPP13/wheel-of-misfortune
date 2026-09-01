@@ -18,6 +18,9 @@ function getGithubPagesBase() {
 export default defineConfig({
   base: getGithubPagesBase(),
   plugins: [react(), tailwindcss()],
+  server: {
+    allowedHosts: ['host.containers.internal'],
+  },
   test: {
     environment: 'jsdom',
     setupFiles: './src/test/setup.ts',

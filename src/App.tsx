@@ -6,7 +6,6 @@ import ChoreListPanel from './components/ChoreListPanel'
 import DoomDomeSection from './components/DoomDomeSection'
 import EditableListPanel from './components/EditableListPanel'
 import FairnessRadar from './components/FairnessRadar'
-import FootballPoolPanel from './components/FootballPoolPanel'
 import NavigationTabs, { type NavigationView } from './components/NavigationTabs'
 import {
   STORAGE_KEY,
@@ -18,17 +17,13 @@ import {
 } from './lib/app-state'
 import { playBattleSpectacle } from './lib/battleAudio'
 import { CarnivalAudio } from './lib/carnivalAudio'
-import { fetchWorldCup2026Matches, type FifaApiMatch } from './lib/world-cup-api'
 import type {
   Assignment,
   Chore,
   ChoreHistoryStats,
-  FootballPrediction,
-  FootballResult,
   HistoryStats,
   PersistedState,
   User,
-  WorldCupMatch,
 } from './types/app'
 
 function App() {
@@ -39,11 +34,6 @@ function App() {
   const [assignments, setAssignments] = useState<Assignment[]>(initialState.assignments)
   const [historyCounts, setHistoryCounts] = useState<HistoryStats>(initialState.historyCounts)
   const [choreHistoryCounts, setChoreHistoryCounts] = useState<ChoreHistoryStats>(initialState.choreHistoryCounts)
-  const [footballPredictions, setFootballPredictions] = useState<FootballPrediction[]>(initialState.footballPredictions)
-  const [footballResults, setFootballResults] = useState<FootballResult[]>(initialState.footballResults)
-  const [worldCupMatches, setWorldCupMatches] = useState<WorldCupMatch[]>([])
-  const [fifaApiMatches, setFifaApiMatches] = useState<FifaApiMatch[]>([])
-  const [worldCupScheduleError, setWorldCupScheduleError] = useState<string | null>(null)
   const [userName, setUserName] = useState('')
   const [choreName, setChoreName] = useState('')
   const [isSpinning, setIsSpinning] = useState(false)
@@ -78,43 +68,14 @@ function App() {
         assignments,
         historyCounts: sanitizedCounts,
         choreHistoryCounts: sanitizedChoreHistoryCounts,
-        footballPredictions,
-        footballResults,
       }),
     )
-  }, [users, chores, assignments, historyCounts, choreHistoryCounts, footballPredictions, footballResults])
+  }, [users, chores, assignments, historyCounts, choreHistoryCounts])
 
   useEffect(() => {
     return () => {
       void carnivalAudioRef.current?.dispose()
       carnivalAudioRef.current = null
-    }
-  }, [])
-
-  useEffect(() => {
-    const controller = new AbortController()
-
-    async function refreshWorldCupMatches() {
-      try {
-        const next = await fetchWorldCup2026Matches(controller.signal)
-        setWorldCupMatches(next.matches)
-        setFifaApiMatches(next.fifaMatches)
-        setWorldCupScheduleError(null)
-      } catch (error) {
-        if (error instanceof DOMException && error.name === 'AbortError') {
-          return
-        }
-
-        setWorldCupScheduleError('Could not refresh FIFA schedule/results right now.')
-      }
-    }
-
-    void refreshWorldCupMatches()
-    const intervalId = window.setInterval(() => void refreshWorldCupMatches(), 60000)
-
-    return () => {
-      controller.abort()
-      window.clearInterval(intervalId)
     }
   }, [])
 
@@ -212,7 +173,6 @@ function App() {
 
     setUsers((current) => current.filter((user) => user.id !== userId))
     setAssignments((current) => current.filter((assignment) => assignment.userId !== userId))
-    setFootballPredictions((current) => current.filter((prediction) => prediction.userId !== userId))
     setHistoryCounts((current) => {
       const next = { ...current }
       delete next[userId]
@@ -387,7 +347,7 @@ function App() {
     if (isSpinning) return
 
     const confirmed = window.confirm(
-      'This will delete all users, chores, assignments, history, and football pool picks. Continue?',
+      'This will delete all users, chores, assignments, and history. Continue?',
     )
 
     if (!confirmed) return
@@ -401,8 +361,6 @@ function App() {
     setAssignments(freshState.assignments)
     setHistoryCounts(freshState.historyCounts)
     setChoreHistoryCounts(freshState.choreHistoryCounts)
-    setFootballPredictions(freshState.footballPredictions)
-    setFootballResults(freshState.footballResults)
     setCurrentChoreId(null)
     setActiveUserId(null)
     setIsSpinning(false)
@@ -501,40 +459,6 @@ function App() {
     )
   }
 
-  const upsertFootballPrediction = (userId: string, matchId: string, homeScore: number, awayScore: number) => {
-    const user = users.find((item) => item.id === userId)
-
-    if (!user || homeScore < 0 || awayScore < 0 || !Number.isInteger(homeScore) || !Number.isInteger(awayScore)) {
-      return
-    }
-
-    const updatedAt = new Date().toISOString()
-    setFootballPredictions((current) => {
-      const nextPrediction = { userId, matchId, homeScore, awayScore, updatedAt }
-      const exists = current.some((prediction) => prediction.userId === userId && prediction.matchId === matchId)
-
-      return exists
-        ? current.map((prediction) =>
-            prediction.userId === userId && prediction.matchId === matchId ? nextPrediction : prediction,
-          )
-        : [...current, nextPrediction]
-    })
-  }
-
-  const upsertFootballResult = (matchId: string, homeScore: number, awayScore: number) => {
-    if (homeScore < 0 || awayScore < 0 || !Number.isInteger(homeScore) || !Number.isInteger(awayScore)) {
-      return
-    }
-
-    const updatedAt = new Date().toISOString()
-    setFootballResults((current) => {
-      const nextResult = { matchId, homeScore, awayScore, updatedAt }
-      const exists = current.some((result) => result.matchId === matchId)
-
-      return exists ? current.map((result) => (result.matchId === matchId ? nextResult : result)) : [...current, nextResult]
-    })
-  }
-
   useEffect(() => {
     if (users.length > 0 && enabledUsers.length === 0) {
       setMessage('All users are disabled for this round. Enable at least one to spin the wheel.')
@@ -574,13 +498,6 @@ function App() {
       badge: chores.length,
       ready: hasChores,
       step: 2,
-    },
-    {
-      id: 'pool' as const,
-      label: 'WK 2026 Pool',
-      badge: footballPredictions.length,
-      ready: hasUsers,
-      step: 0,
     },
     {
       id: 'play' as const,
@@ -652,23 +569,6 @@ function App() {
             chores={chores}
             choreHistoryCounts={choreHistoryCounts}
             historyCounts={historyCounts}
-            users={users}
-          />
-        </section>
-      )
-    }
-
-    if (activeView === 'pool') {
-      return (
-        <section className="w-full">
-          <FootballPoolPanel
-            fifaApiMatches={fifaApiMatches}
-            matches={worldCupMatches}
-            onUpsertPrediction={upsertFootballPrediction}
-            onUpsertResult={upsertFootballResult}
-            predictions={footballPredictions}
-            results={footballResults}
-            resultsError={worldCupScheduleError}
             users={users}
           />
         </section>

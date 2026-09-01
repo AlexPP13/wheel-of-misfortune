@@ -3,8 +3,6 @@ import type {
   Chore,
   ChoreHistoryStats,
   FairnessDistributionEntry,
-  FootballPrediction,
-  FootballResult,
   HistoryStats,
   PersistedState,
   User,
@@ -21,8 +19,6 @@ export function createDefaultState(): PersistedState {
     assignments: [],
     historyCounts: {},
     choreHistoryCounts: {},
-    footballPredictions: [],
-    footballResults: [],
   }
 }
 
@@ -77,82 +73,10 @@ export function getStoredState(): PersistedState {
       return acc
     }, {})
 
-    const footballPredictions = sanitizeFootballPredictions(parsed.footballPredictions, users)
-    const footballResults = sanitizeFootballResults(parsed.footballResults)
-
-    return { users, chores, assignments, historyCounts, choreHistoryCounts, footballPredictions, footballResults }
+    return { users, chores, assignments, historyCounts, choreHistoryCounts }
   } catch {
     return fallback
   }
-}
-
-function isValidScore(score: unknown): score is number {
-  return typeof score === 'number' && Number.isInteger(score) && score >= 0
-}
-
-function sanitizeFootballPredictions(
-  predictions: unknown,
-  users: User[],
-): FootballPrediction[] {
-  if (!Array.isArray(predictions)) {
-    return []
-  }
-
-  const userIds = new Set(users.map((user) => user.id))
-  const seen = new Set<string>()
-
-  return predictions.filter((prediction): prediction is FootballPrediction => {
-    if (!prediction || typeof prediction !== 'object') {
-      return false
-    }
-
-    const candidate = prediction as Partial<FootballPrediction>
-    const key = `${candidate.userId ?? ''}:${candidate.matchId ?? ''}`
-
-    if (
-      typeof candidate.userId !== 'string' ||
-      typeof candidate.matchId !== 'string' ||
-      typeof candidate.updatedAt !== 'string' ||
-      !userIds.has(candidate.userId) ||
-      !isValidScore(candidate.homeScore) ||
-      !isValidScore(candidate.awayScore) ||
-      seen.has(key)
-    ) {
-      return false
-    }
-
-    seen.add(key)
-    return true
-  })
-}
-
-function sanitizeFootballResults(results: unknown): FootballResult[] {
-  if (!Array.isArray(results)) {
-    return []
-  }
-
-  const seen = new Set<string>()
-
-  return results.filter((result): result is FootballResult => {
-    if (!result || typeof result !== 'object') {
-      return false
-    }
-
-    const candidate = result as Partial<FootballResult>
-
-    if (
-      typeof candidate.matchId !== 'string' ||
-      typeof candidate.updatedAt !== 'string' ||
-      !isValidScore(candidate.homeScore) ||
-      !isValidScore(candidate.awayScore) ||
-      seen.has(candidate.matchId)
-    ) {
-      return false
-    }
-
-    seen.add(candidate.matchId)
-    return true
-  })
 }
 
 export function sanitizeAssignments(assignments: unknown, users: User[], chores: Chore[]): Assignment[] {
