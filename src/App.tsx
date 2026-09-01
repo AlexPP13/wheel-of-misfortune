@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import AppShell from './components/AppShell'
 import AssignmentsPanel from './components/AssignmentsPanel'
 import BattlePanel, { type BattleDisplayResult } from './components/BattlePanel'
@@ -17,6 +17,7 @@ import {
 } from './lib/app-state'
 import { playBattleSpectacle } from './lib/battleAudio'
 import { CarnivalAudio } from './lib/carnivalAudio'
+import { CONFETTI_BURST_DURATION_MS } from './components/ConfettiBurst'
 import type {
   Assignment,
   Chore,
@@ -25,6 +26,13 @@ import type {
   PersistedState,
   User,
 } from './types/app'
+
+const REEL_TICK_COUNT = 12
+const REEL_TICK_BASE_DELAY_MS = 85
+const REEL_TICK_DELAY_INCREMENT_MS = 16
+const REEL_SPIN_DURATION_MS =
+  REEL_TICK_COUNT * REEL_TICK_BASE_DELAY_MS +
+  REEL_TICK_DELAY_INCREMENT_MS * ((REEL_TICK_COUNT * (REEL_TICK_COUNT - 1)) / 2)
 
 function App() {
   const carnivalAudioRef = useRef<CarnivalAudio | null>(null)
@@ -45,6 +53,10 @@ function App() {
   const [lastBattleResult, setLastBattleResult] = useState<BattleDisplayResult | null>(null)
   const [selectedBattleUserIds, setSelectedBattleUserIds] = useState<string[]>([])
   const [message, setMessage] = useState('Summon the cast, feed the wheel, and unleash chore destiny.')
+
+  const clearConfettiBurst = useCallback((completedBurstKey: number) => {
+    setConfettiBurstKey((currentBurstKey) => (currentBurstKey === completedBurstKey ? 0 : currentBurstKey))
+  }, [])
 
   useEffect(() => {
     const sanitizedCounts = users.reduce<HistoryStats>((acc, user) => {
@@ -255,7 +267,6 @@ function App() {
     }
 
     setIsSpinning(true)
-    setIsReelSpinning(true)
     setMessage('⚡ The arena awakens. Lights flash. Fate starts screaming...')
 
     let nextCounts = { ...historyCounts }
@@ -277,11 +288,10 @@ function App() {
         setMessage(`🎯 ${chore.name} enters the thunder dome. Choose wisely, cruel machine.`)
         await carnivalAudioRef.current.start()
 
-        for (let tick = 0; tick < 12; tick += 1) {
-          const highlighted = enabledUsers[tick % enabledUsers.length]
-          setActiveUserId(highlighted.id)
-          await new Promise((resolve) => window.setTimeout(resolve, 85 + tick * 16))
-        }
+        // The spinning reel is entirely CSS-driven, so updating React state on every
+        // simulated reel tick only re-renders the application without changing what is shown.
+        // Keep the same total suspense duration while letting the compositor animate the reel.
+        await new Promise((resolve) => window.setTimeout(resolve, REEL_SPIN_DURATION_MS))
 
         const nextAssignment = roundAssignments.find((assignment) => assignment.choreId === chore.id)
         const chosenUser = nextAssignment ? enabledUsers.find((user) => user.id === nextAssignment.userId) : null
@@ -293,7 +303,6 @@ function App() {
         setActiveUserId(chosenUser.id)
         setIsReelSpinning(false)
         carnivalAudioRef.current?.stop()
-        await carnivalAudioRef.current?.playBell()
 
         producedAssignments.push(nextAssignment)
         nextCounts = {
@@ -311,10 +320,13 @@ function App() {
         setAssignments((current) => [...current, nextAssignment])
         setHistoryCounts(nextCounts)
         setChoreHistoryCounts(nextChoreCounts)
+        // Start the jackpot chime just before this state update so the sound and
+        // the next confetti render begin together instead of playing in sequence.
+        void carnivalAudioRef.current?.playBell()
         setConfettiBurstKey((current) => current + 1)
         setMessage(`🔥 ${chosenUser.name} has been dramatically volunteered for ${chore.name}.`)
 
-        await new Promise((resolve) => window.setTimeout(resolve, 650))
+        await new Promise((resolve) => window.setTimeout(resolve, CONFETTI_BURST_DURATION_MS + 100))
       }
     } finally {
       carnivalAudioRef.current?.stop()
@@ -610,6 +622,7 @@ function App() {
           isSpinning={isSpinning}
           isReelSpinning={isReelSpinning}
           message={message}
+          onConfettiComplete={clearConfettiBurst}
           onResetRound={resetRound}
           onRunSpin={runSpin}
           users={enabledUsers}

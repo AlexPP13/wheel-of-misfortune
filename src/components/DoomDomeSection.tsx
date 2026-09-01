@@ -1,6 +1,7 @@
-import type { CSSProperties } from 'react'
+import { useRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 
+import ConfettiBurst from './ConfettiBurst'
 import type { User } from '../types/app'
 import { panelMotion } from './panelMotion'
 
@@ -13,28 +14,11 @@ type DoomDomeSectionProps = {
   isReelSpinning: boolean
   isSpinning: boolean
   message: string
+  onConfettiComplete: (burstKey: number) => void
   onResetRound: () => void
   onRunSpin: () => void
   users: User[]
 }
-
-const confettiPalette = ['#ff4d6d', '#ff7a00', '#ffd60a', '#70e000', '#00d1ff', '#4361ee', '#9b5de5', '#ff66c4']
-
-const confettiPieces = Array.from({ length: 64 }, (_, index) => {
-  const angle = (Math.PI * 2 * index) / 64
-  const ring = index % 4
-  const distance = 120 + ring * 36 + (index % 3) * 18
-  const upwardLift = 80 + (index % 5) * 18
-  const drift = ring % 2 === 0 ? 1 : -1
-
-  return {
-    x: Math.cos(angle) * distance,
-    y: Math.sin(angle) * (distance * 0.72) - upwardLift,
-    rotate: drift * (180 + ring * 45 + (index % 6) * 22),
-    color: confettiPalette[index % confettiPalette.length],
-    delay: (index % 8) * 0.012,
-  }
-})
 
 function DoomDomeSection({
   activeUserId,
@@ -45,10 +29,12 @@ function DoomDomeSection({
   isReelSpinning,
   isSpinning,
   message,
+  onConfettiComplete,
   onResetRound,
   onRunSpin,
   users,
 }: DoomDomeSectionProps) {
+  const slotMachineWindowRef = useRef<HTMLDivElement>(null)
   const activeUser = activeUserId ? users.find((user) => user.id === activeUserId) ?? null : null
   const activeIndex = activeUserId ? users.findIndex((user) => user.id === activeUserId) : 0
   const safeActiveIndex = activeIndex >= 0 ? activeIndex : 0
@@ -83,7 +69,7 @@ function DoomDomeSection({
           </AnimatePresence>
 
           <div className="slot-machine-shell mt-6">
-            <div className="slot-machine-window">
+            <div ref={slotMachineWindowRef} className="slot-machine-window">
               <div className="slot-machine-window__mask" />
               {users.length > 0 ? (
                 isReelSpinning ? (
@@ -120,36 +106,13 @@ function DoomDomeSection({
               ) : (
                 <div className="slot-reel__empty">{idleHint ?? 'Add users to load the reel'}</div>
               )}
-              <AnimatePresence>
-                {confettiBurstKey > 0 ? (
-                  <motion.div
-                    key={confettiBurstKey}
-                    className="slot-machine-confetti"
-                    initial={{ opacity: 1 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.45, ease: 'easeOut' }}
-                  >
-                    {confettiPieces.map((piece, index) => (
-                      <motion.span
-                        key={`${confettiBurstKey}-${index}`}
-                        className="slot-machine-confetti__piece"
-                        style={{ '--confetti-color': piece.color } as CSSProperties}
-                        initial={{ x: 0, y: 0, opacity: 0, rotate: 0, scale: 0.2 }}
-                        animate={{
-                          x: piece.x,
-                          y: piece.y,
-                          opacity: [0, 1, 1, 0.85, 0],
-                          rotate: piece.rotate,
-                          scale: [0.2, 1.15, 0.9, 0.72],
-                        }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 1.15, ease: [0.2, 0.8, 0.2, 1], delay: piece.delay }}
-                      />
-                    ))}
-                  </motion.div>
-                ) : null}
-              </AnimatePresence>
+              {confettiBurstKey > 0 ? (
+                <ConfettiBurst
+                  anchorRef={slotMachineWindowRef}
+                  burstKey={confettiBurstKey}
+                  onComplete={onConfettiComplete}
+                />
+              ) : null}
               <div className="slot-machine-pointer" />
             </div>
           </div>
