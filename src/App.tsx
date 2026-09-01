@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import AppShell from './components/AppShell'
 import AssignmentsPanel from './components/AssignmentsPanel'
 import BattlePanel, { type BattleDisplayResult } from './components/BattlePanel'
@@ -52,6 +52,10 @@ function App() {
   const [lastBattleResult, setLastBattleResult] = useState<BattleDisplayResult | null>(null)
   const [selectedBattleUserIds, setSelectedBattleUserIds] = useState<string[]>([])
   const [message, setMessage] = useState('Summon the cast, feed the wheel, and unleash chore destiny.')
+
+  const clearConfettiBurst = useCallback((completedBurstKey: number) => {
+    setConfettiBurstKey((currentBurstKey) => (currentBurstKey === completedBurstKey ? 0 : currentBurstKey))
+  }, [])
 
   useEffect(() => {
     const sanitizedCounts = users.reduce<HistoryStats>((acc, user) => {
@@ -615,6 +619,7 @@ function App() {
           isSpinning={isSpinning}
           isReelSpinning={isReelSpinning}
           message={message}
+          onConfettiComplete={clearConfettiBurst}
           onResetRound={resetRound}
           onRunSpin={runSpin}
           users={enabledUsers}

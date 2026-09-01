@@ -232,53 +232,13 @@
       0 0 16px rgba(242, 203, 115, 0.14);
   }
 
-  .slot-machine-confetti {
-    @apply pointer-events-none absolute left-1/2 top-1/2 z-30;
-    width: 0;
-    height: 0;
-    contain: layout;
-    isolation: isolate;
-  }
-
-  .slot-machine-confetti__piece {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 9px;
-    height: 14px;
-    border-radius: 999px;
-    background: var(--confetti-color);
-    box-shadow:
-      0 0 16px color-mix(in srgb, var(--confetti-color) 76%, transparent),
-      0 0 32px color-mix(in srgb, var(--confetti-color) 42%, transparent);
-    animation:
-      confetti-flight 1.15s linear var(--confetti-delay) both,
-      confetti-pop 1.15s linear var(--confetti-delay) both;
-    will-change: opacity, transform;
-  }
-
-  .slot-machine-confetti__piece:nth-child(3n) {
-    width: 6px;
-    height: 6px;
-    border-radius: 999px;
-  }
-
-  .slot-machine-confetti__piece:nth-child(4n) {
-    width: 5px;
-    height: 18px;
-    border-radius: 2px;
-  }
-
-  .slot-machine-confetti__piece:nth-child(5n) {
-    width: 8px;
-    height: 8px;
-    border-radius: 999px;
-  }
-
-  .slot-machine-confetti__piece:nth-child(7n) {
-    width: 4px;
-    height: 13px;
-    border-radius: 2px;
+  .slot-machine-confetti__canvas {
+    pointer-events: none;
+    position: fixed;
+    inset: 0;
+    z-index: 2147483647;
+    width: 100vw;
+    height: 100vh;
   }
 
   .slot-reel {
@@ -615,43 +575,6 @@
 
   100% {
     transform: translateY(-152px);
-  }
-}
-
-@keyframes confetti-flight {
-  0% {
-    transform: translate3d(0, 0, 0) rotate(0deg);
-  }
-
-  100% {
-    transform: translate3d(var(--confetti-x), var(--confetti-y), 0) rotate(var(--confetti-rotate));
-  }
-}
-
-@keyframes confetti-pop {
-  0% {
-    opacity: 0;
-    scale: 0.2;
-  }
-
-  18% {
-    opacity: 1;
-    scale: 1.15;
-  }
-
-  58% {
-    opacity: 1;
-    scale: 0.9;
-  }
-
-  82% {
-    opacity: 0.85;
-    scale: 0.72;
-  }
-
-  100% {
-    opacity: 0;
-    scale: 0.72;
   }
 }
 

@@ -1,6 +1,7 @@
-import type { CSSProperties } from 'react'
+import { useRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 
+import ConfettiBurst from './ConfettiBurst'
 import type { User } from '../types/app'
 import { panelMotion } from './panelMotion'
 
@@ -13,28 +14,11 @@ type DoomDomeSectionProps = {
   isReelSpinning: boolean
   isSpinning: boolean
   message: string
+  onConfettiComplete: (burstKey: number) => void
   onResetRound: () => void
   onRunSpin: () => void
   users: User[]
 }
-
-const confettiPalette = ['#ff4d6d', '#ff7a00', '#ffd60a', '#70e000', '#00d1ff', '#4361ee', '#9b5de5', '#ff66c4']
-
-const confettiPieces = Array.from({ length: 96 }, (_, index) => {
-  const angle = (Math.PI * 2 * index) / 96
-  const ring = index % 5
-  const distance = 165 + ring * 48 + (index % 4) * 24
-  const upwardLift = 115 + (index % 6) * 24
-  const drift = ring % 2 === 0 ? 1 : -1
-
-  return {
-    x: Math.cos(angle) * distance,
-    y: Math.sin(angle) * (distance * 0.72) - upwardLift,
-    rotate: drift * (180 + ring * 45 + (index % 6) * 22),
-    color: confettiPalette[index % confettiPalette.length],
-    delay: (index % 8) * 0.012,
-  }
-})
 
 function DoomDomeSection({
   activeUserId,
@@ -45,10 +29,12 @@ function DoomDomeSection({
   isReelSpinning,
   isSpinning,
   message,
+  onConfettiComplete,
   onResetRound,
   onRunSpin,
   users,
 }: DoomDomeSectionProps) {
+  const slotMachineWindowRef = useRef<HTMLDivElement>(null)
   const activeUser = activeUserId ? users.find((user) => user.id === activeUserId) ?? null : null
   const activeIndex = activeUserId ? users.findIndex((user) => user.id === activeUserId) : 0
   const safeActiveIndex = activeIndex >= 0 ? activeIndex : 0
@@ -83,7 +69,7 @@ function DoomDomeSection({
           </AnimatePresence>
 
           <div className="slot-machine-shell mt-6">
-            <div className="slot-machine-window">
+            <div ref={slotMachineWindowRef} className="slot-machine-window">
               <div className="slot-machine-window__mask" />
               {users.length > 0 ? (
                 isReelSpinning ? (
@@ -120,34 +106,13 @@ function DoomDomeSection({
               ) : (
                 <div className="slot-reel__empty">{idleHint ?? 'Add users to load the reel'}</div>
               )}
-              <AnimatePresence>
-                {confettiBurstKey > 0 ? (
-                  <motion.div
-                    key={confettiBurstKey}
-                    className="slot-machine-confetti"
-                    initial={{ opacity: 1 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.45, ease: 'easeOut' }}
-                  >
-                    {confettiPieces.map((piece, index) => (
-                      <span
-                        key={`${confettiBurstKey}-${index}`}
-                        className="slot-machine-confetti__piece"
-                        style={
-                          {
-                            '--confetti-color': piece.color,
-                            '--confetti-delay': `${piece.delay}s`,
-                            '--confetti-rotate': `${piece.rotate}deg`,
-                            '--confetti-x': `${piece.x}px`,
-                            '--confetti-y': `${piece.y}px`,
-                          } as CSSProperties
-                        }
-                      />
-                    ))}
-                  </motion.div>
-                ) : null}
-              </AnimatePresence>
+              {confettiBurstKey > 0 ? (
+                <ConfettiBurst
+                  anchorRef={slotMachineWindowRef}
+                  burstKey={confettiBurstKey}
+                  onComplete={onConfettiComplete}
+                />
+              ) : null}
               <div className="slot-machine-pointer" />
             </div>
           </div>
