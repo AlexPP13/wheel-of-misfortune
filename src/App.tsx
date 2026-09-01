@@ -26,6 +26,13 @@ import type {
   User,
 } from './types/app'
 
+const REEL_TICK_COUNT = 12
+const REEL_TICK_BASE_DELAY_MS = 85
+const REEL_TICK_DELAY_INCREMENT_MS = 16
+const REEL_SPIN_DURATION_MS =
+  REEL_TICK_COUNT * REEL_TICK_BASE_DELAY_MS +
+  REEL_TICK_DELAY_INCREMENT_MS * ((REEL_TICK_COUNT * (REEL_TICK_COUNT - 1)) / 2)
+
 function App() {
   const carnivalAudioRef = useRef<CarnivalAudio | null>(null)
   const [initialState] = useState<PersistedState>(() => getStoredState())
@@ -255,7 +262,6 @@ function App() {
     }
 
     setIsSpinning(true)
-    setIsReelSpinning(true)
     setMessage('⚡ The arena awakens. Lights flash. Fate starts screaming...')
 
     let nextCounts = { ...historyCounts }
@@ -277,11 +283,10 @@ function App() {
         setMessage(`🎯 ${chore.name} enters the thunder dome. Choose wisely, cruel machine.`)
         await carnivalAudioRef.current.start()
 
-        for (let tick = 0; tick < 12; tick += 1) {
-          const highlighted = enabledUsers[tick % enabledUsers.length]
-          setActiveUserId(highlighted.id)
-          await new Promise((resolve) => window.setTimeout(resolve, 85 + tick * 16))
-        }
+        // The spinning reel is entirely CSS-driven, so updating React state on every
+        // simulated reel tick only re-renders the application without changing what is shown.
+        // Keep the same total suspense duration while letting the compositor animate the reel.
+        await new Promise((resolve) => window.setTimeout(resolve, REEL_SPIN_DURATION_MS))
 
         const nextAssignment = roundAssignments.find((assignment) => assignment.choreId === chore.id)
         const chosenUser = nextAssignment ? enabledUsers.find((user) => user.id === nextAssignment.userId) : null

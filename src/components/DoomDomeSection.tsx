@@ -131,20 +131,18 @@ function DoomDomeSection({
                     transition={{ duration: 0.45, ease: 'easeOut' }}
                   >
                     {confettiPieces.map((piece, index) => (
-                      <motion.span
+                      <span
                         key={`${confettiBurstKey}-${index}`}
                         className="slot-machine-confetti__piece"
-                        style={{ '--confetti-color': piece.color } as CSSProperties}
-                        initial={{ x: 0, y: 0, opacity: 0, rotate: 0, scale: 0.2 }}
-                        animate={{
-                          x: piece.x,
-                          y: piece.y,
-                          opacity: [0, 1, 1, 0.85, 0],
-                          rotate: piece.rotate,
-                          scale: [0.2, 1.15, 0.9, 0.72],
-                        }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 1.15, ease: [0.2, 0.8, 0.2, 1], delay: piece.delay }}
+                        style={
+                          {
+                            '--confetti-color': piece.color,
+                            '--confetti-delay': `${piece.delay}s`,
+                            '--confetti-rotate': `${piece.rotate}deg`,
+                            '--confetti-x': `${piece.x}px`,
+                            '--confetti-y': `${piece.y}px`,
+                          } as CSSProperties
+                        }
                       />
                     ))}
                   </motion.div>

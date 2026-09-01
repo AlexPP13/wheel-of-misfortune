@@ -236,6 +236,8 @@
     @apply pointer-events-none absolute left-1/2 top-1/2 z-30;
     width: 0;
     height: 0;
+    contain: layout;
+    isolation: isolate;
   }
 
   .slot-machine-confetti__piece {
@@ -249,6 +251,8 @@
     box-shadow:
       0 0 12px color-mix(in srgb, var(--confetti-color) 62%, transparent),
       0 0 24px color-mix(in srgb, var(--confetti-color) 30%, transparent);
+    animation: confetti-burst 1.15s cubic-bezier(0.2, 0.8, 0.2, 1) var(--confetti-delay) both;
+    will-change: opacity, transform;
   }
 
   .slot-machine-confetti__piece:nth-child(3n) {
@@ -282,7 +286,7 @@
   .slot-reel-spinning {
     animation: slot-spin 90ms linear infinite;
     filter: blur(2.4px);
-    will-change: transform;
+    will-change: filter, transform;
   }
 
   .slot-reel__item {
@@ -609,6 +613,33 @@
 
   100% {
     transform: translateY(-152px);
+  }
+}
+
+@keyframes confetti-burst {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(0.2);
+  }
+
+  18% {
+    opacity: 1;
+    transform: translate3d(calc(var(--confetti-x) * 0.3), calc(var(--confetti-y) * 0.3), 0) rotate(calc(var(--confetti-rotate) * 0.3)) scale(1.15);
+  }
+
+  58% {
+    opacity: 1;
+    transform: translate3d(calc(var(--confetti-x) * 0.72), calc(var(--confetti-y) * 0.72), 0) rotate(calc(var(--confetti-rotate) * 0.72)) scale(0.9);
+  }
+
+  82% {
+    opacity: 0.85;
+    transform: translate3d(calc(var(--confetti-x) * 0.9), calc(var(--confetti-y) * 0.9), 0) rotate(calc(var(--confetti-rotate) * 0.9)) scale(0.72);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--confetti-x), var(--confetti-y), 0) rotate(var(--confetti-rotate)) scale(0.72);
   }
 }
 
