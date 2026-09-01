@@ -19,18 +19,21 @@ function getGithubPagesBase() {
 }
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   base: getGithubPagesBase(),
   plugins: [react(), tailwindcss()],
   server: {
     allowedHosts: ['host.containers.internal'],
-    https: {
-      cert: readFileSync(`${certificateDirectory}dev-cert.pem`),
-      key: readFileSync(`${certificateDirectory}dev-key.pem`),
-    },
+    https:
+      command === 'serve'
+        ? {
+            cert: readFileSync(`${certificateDirectory}dev-cert.pem`),
+            key: readFileSync(`${certificateDirectory}dev-key.pem`),
+          }
+        : undefined,
   },
   test: {
     environment: 'jsdom',
     setupFiles: './src/test/setup.ts',
   },
-})
+}))
