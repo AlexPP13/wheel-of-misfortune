@@ -17,6 +17,7 @@ import {
 } from './lib/app-state'
 import { playBattleSpectacle } from './lib/battleAudio'
 import { CarnivalAudio } from './lib/carnivalAudio'
+import { CONFETTI_BURST_DURATION_MS } from './components/ConfettiBurst'
 import type {
   Assignment,
   Chore,
@@ -323,7 +324,7 @@ function App() {
         setConfettiBurstKey((current) => current + 1)
         setMessage(`🔥 ${chosenUser.name} has been dramatically volunteered for ${chore.name}.`)
 
-        await new Promise((resolve) => window.setTimeout(resolve, 650))
+        await new Promise((resolve) => window.setTimeout(resolve, CONFETTI_BURST_DURATION_MS + 100))
       }
     } finally {
       carnivalAudioRef.current?.stop()

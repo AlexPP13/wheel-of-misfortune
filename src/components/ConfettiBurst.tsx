@@ -9,29 +9,41 @@ type ConfettiBurstProps = {
 
 type Particle = {
   color: string
+  drag: number
+  flutter: number
+  flutterFrequency: number
+  gravity: number
   height: number
+  phase: number
   rotate: number
+  velocityX: number
+  velocityY: number
   width: number
-  x: number
-  y: number
 }
 
 const PARTICLE_COUNT = 1000
-const BURST_DURATION_MS = 1150
+export const CONFETTI_BURST_DURATION_MS = 2800
 const confettiPalette = ['#ff4d6d', '#ff7a00', '#ffd60a', '#70e000', '#00d1ff', '#4361ee', '#9b5de5', '#ff66c4']
 
-function createParticles(maxDistance: number) {
+function createParticles() {
   return Array.from({ length: PARTICLE_COUNT }, (): Particle => {
-    const angle = Math.random() * Math.PI * 2
-    const distance = maxDistance * (1.25 + Math.random() * 0.35)
+    const launchAngle = Math.random() * Math.PI * 2
+    // Mix slower core particles with fast outer particles so the blast reads as
+    // a dense volume instead of a hollow expanding ring.
+    const launchSpeed = Math.random() < 0.45 ? 100 + Math.random() * 600 : 800 + Math.random() * 1100
     const sizeVariant = Math.floor(Math.random() * 7)
     const width = sizeVariant === 0 ? 4 : sizeVariant === 1 ? 5 : sizeVariant === 2 ? 8 : 9
     const height = sizeVariant === 0 ? 13 : sizeVariant === 1 ? 18 : sizeVariant === 2 ? 8 : 14
 
     return {
-      x: Math.cos(angle) * distance,
-      y: Math.sin(angle) * (distance * (0.55 + Math.random() * 0.3)) - (80 + Math.random() * 240),
-      rotate: (Math.random() > 0.5 ? 1 : -1) * (150 + Math.random() * 420),
+      velocityX: Math.cos(launchAngle) * launchSpeed,
+      velocityY: Math.sin(launchAngle) * launchSpeed - 120,
+      drag: 0.8 + Math.random() * 0.55,
+      gravity: 520 + Math.random() * 300,
+      flutter: 18 + Math.random() * 52,
+      flutterFrequency: 4 + Math.random() * 7,
+      rotate: (Math.random() > 0.5 ? 1 : -1) * (180 + Math.random() * 540),
+      phase: Math.random() * Math.PI * 2,
       color: confettiPalette[Math.floor(Math.random() * confettiPalette.length)],
       width,
       height,
@@ -74,7 +86,7 @@ function ConfettiBurst({ anchorRef, burstKey, onComplete }: ConfettiBurstProps) 
     const anchorRect = anchor.getBoundingClientRect()
     const originX = anchorRect.left + anchorRect.width / 2
     const originY = anchorRect.top + anchorRect.height / 2
-    const particles = createParticles(Math.hypot(canvasWidth, canvasHeight))
+    const particles = createParticles()
     let animationFrame = 0
 
     const draw = (now: number) => {
@@ -84,10 +96,15 @@ function ConfettiBurst({ anchorRef, burstKey, onComplete }: ConfettiBurstProps) 
       for (let index = 0; index < particles.length; index += 1) {
         const particle = particles[index]
         const delay = (index % 20) * 4.5
-        const progress = (elapsed - delay) / BURST_DURATION_MS
+        const progress = (elapsed - delay) / CONFETTI_BURST_DURATION_MS
 
         if (progress < 0 || progress > 1) continue
 
+        const seconds = (elapsed - delay) / 1000
+        const dragDistance = (1 - Math.exp(-particle.drag * seconds)) / particle.drag
+        const flutter = Math.sin(seconds * particle.flutterFrequency + particle.phase) * particle.flutter * seconds
+        const x = particle.velocityX * dragDistance + flutter
+        const y = particle.velocityY * dragDistance + 0.5 * particle.gravity * seconds * seconds
         const opacity = interpolate(progress, [
           [0, 0],
           [0.18, 1],
@@ -105,8 +122,8 @@ function ConfettiBurst({ anchorRef, burstKey, onComplete }: ConfettiBurstProps) 
 
         context.save()
         context.globalAlpha = opacity
-        context.translate(originX + particle.x * progress, originY + particle.y * progress)
-        context.rotate((particle.rotate * progress * Math.PI) / 180)
+        context.translate(originX + x, originY + y)
+        context.rotate(((particle.rotate * seconds + flutter * 0.35) * Math.PI) / 180)
         context.fillStyle = particle.color
         context.shadowColor = particle.color
         context.shadowBlur = 12
@@ -119,7 +136,7 @@ function ConfettiBurst({ anchorRef, burstKey, onComplete }: ConfettiBurstProps) 
         context.restore()
       }
 
-      if (elapsed <= BURST_DURATION_MS + 90) {
+      if (elapsed <= CONFETTI_BURST_DURATION_MS + 90) {
         animationFrame = window.requestAnimationFrame(draw)
       } else {
         onComplete(burstKey)
