@@ -20,11 +20,11 @@ type DoomDomeSectionProps = {
 
 const confettiPalette = ['#ff4d6d', '#ff7a00', '#ffd60a', '#70e000', '#00d1ff', '#4361ee', '#9b5de5', '#ff66c4']
 
-const confettiPieces = Array.from({ length: 64 }, (_, index) => {
-  const angle = (Math.PI * 2 * index) / 64
-  const ring = index % 4
-  const distance = 120 + ring * 36 + (index % 3) * 18
-  const upwardLift = 80 + (index % 5) * 18
+const confettiPieces = Array.from({ length: 96 }, (_, index) => {
+  const angle = (Math.PI * 2 * index) / 96
+  const ring = index % 5
+  const distance = 165 + ring * 48 + (index % 4) * 24
+  const upwardLift = 115 + (index % 6) * 24
   const drift = ring % 2 === 0 ? 1 : -1
 
   return {

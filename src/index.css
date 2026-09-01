@@ -244,38 +244,40 @@
     position: absolute;
     left: 0;
     top: 0;
-    width: 7px;
-    height: 11px;
+    width: 9px;
+    height: 14px;
     border-radius: 999px;
     background: var(--confetti-color);
     box-shadow:
-      0 0 12px color-mix(in srgb, var(--confetti-color) 62%, transparent),
-      0 0 24px color-mix(in srgb, var(--confetti-color) 30%, transparent);
-    animation: confetti-burst 1.15s cubic-bezier(0.2, 0.8, 0.2, 1) var(--confetti-delay) both;
+      0 0 16px color-mix(in srgb, var(--confetti-color) 76%, transparent),
+      0 0 32px color-mix(in srgb, var(--confetti-color) 42%, transparent);
+    animation:
+      confetti-flight 1.15s linear var(--confetti-delay) both,
+      confetti-pop 1.15s linear var(--confetti-delay) both;
     will-change: opacity, transform;
   }
 
   .slot-machine-confetti__piece:nth-child(3n) {
-    width: 5px;
-    height: 5px;
-    border-radius: 999px;
-  }
-
-  .slot-machine-confetti__piece:nth-child(4n) {
-    width: 4px;
-    height: 14px;
-    border-radius: 2px;
-  }
-
-  .slot-machine-confetti__piece:nth-child(5n) {
     width: 6px;
     height: 6px;
     border-radius: 999px;
   }
 
+  .slot-machine-confetti__piece:nth-child(4n) {
+    width: 5px;
+    height: 18px;
+    border-radius: 2px;
+  }
+
+  .slot-machine-confetti__piece:nth-child(5n) {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+  }
+
   .slot-machine-confetti__piece:nth-child(7n) {
-    width: 3px;
-    height: 10px;
+    width: 4px;
+    height: 13px;
     border-radius: 2px;
   }
 
@@ -616,30 +618,40 @@
   }
 }
 
-@keyframes confetti-burst {
+@keyframes confetti-flight {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+
+  100% {
+    transform: translate3d(var(--confetti-x), var(--confetti-y), 0) rotate(var(--confetti-rotate));
+  }
+}
+
+@keyframes confetti-pop {
   0% {
     opacity: 0;
-    transform: translate3d(0, 0, 0) rotate(0deg) scale(0.2);
+    scale: 0.2;
   }
 
   18% {
     opacity: 1;
-    transform: translate3d(calc(var(--confetti-x) * 0.3), calc(var(--confetti-y) * 0.3), 0) rotate(calc(var(--confetti-rotate) * 0.3)) scale(1.15);
+    scale: 1.15;
   }
 
   58% {
     opacity: 1;
-    transform: translate3d(calc(var(--confetti-x) * 0.72), calc(var(--confetti-y) * 0.72), 0) rotate(calc(var(--confetti-rotate) * 0.72)) scale(0.9);
+    scale: 0.9;
   }
 
   82% {
     opacity: 0.85;
-    transform: translate3d(calc(var(--confetti-x) * 0.9), calc(var(--confetti-y) * 0.9), 0) rotate(calc(var(--confetti-rotate) * 0.9)) scale(0.72);
+    scale: 0.72;
   }
 
   100% {
     opacity: 0;
-    transform: translate3d(var(--confetti-x), var(--confetti-y), 0) rotate(var(--confetti-rotate)) scale(0.72);
+    scale: 0.72;
   }
 }
 
