@@ -6,7 +6,7 @@ type NavigationItem = {
   step: number
 }
 
-export type NavigationView = 'users' | 'chores' | 'pool' | 'play' | 'battle' | 'fairness'
+export type NavigationView = 'users' | 'chores' | 'play' | 'battle' | 'fairness'
 
 type NavigationTabsProps = {
   activeView: NavigationView
@@ -17,9 +17,6 @@ type NavigationTabsProps = {
 }
 
 function NavigationTabs({ activeView, disabled = false, items, onChange, onResetEverything }: NavigationTabsProps) {
-  const poolItem = items.find((item) => item.id === 'pool')
-  const wheelItems = items.filter((item) => item.id !== 'pool')
-
   return (
     <nav className="glass-panel mb-4 p-2.5 sm:p-3" aria-label="App views">
       <div className="mb-2 flex items-center justify-between gap-4 px-2">
@@ -37,30 +34,8 @@ function NavigationTabs({ activeView, disabled = false, items, onChange, onReset
         </button>
       </div>
 
-      {poolItem ? (
-        <div className="mb-3 px-1 sm:px-2">
-          <button
-            type="button"
-            className={['view-tab w-full', poolItem.id === activeView ? 'view-tab-active' : ''].filter(Boolean).join(' ')}
-            onClick={() => onChange(poolItem.id)}
-            aria-pressed={poolItem.id === activeView}
-          >
-            <span className="view-tab__copy">
-              <span className="view-tab__meta">
-                <span className="view-tab__step">Tournament side quest</span>
-                <span className={['view-tab__status', poolItem.ready ? 'view-tab__status-ready' : ''].filter(Boolean).join(' ')}>
-                  {poolItem.ready ? 'Ready' : 'Needs users'}
-                </span>
-              </span>
-              <span className="view-tab__label">{poolItem.label}</span>
-            </span>
-            <span className="view-tab__badge">{poolItem.badge}</span>
-          </button>
-        </div>
-      ) : null}
-
       <div className="grid gap-3 md:grid-cols-5">
-        {wheelItems.map((item) => {
+        {items.map((item) => {
           const isActive = item.id === activeView
 
           return (

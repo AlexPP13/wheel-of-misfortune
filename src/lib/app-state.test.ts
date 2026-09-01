@@ -47,6 +47,23 @@ describe('getStoredState', () => {
     expect(getStoredState()).toEqual(createDefaultState())
   })
 
+  it('accepts legacy football fields but ignores them', () => {
+    storeState({
+      users: [users[0]],
+      chores: [chores[0]],
+      footballPredictions: [{ userId: 'user-1', matchId: 'match-1', homeScore: 2, awayScore: 1 }],
+      footballResults: [{ matchId: 'match-1', homeScore: 2, awayScore: 1 }],
+    })
+
+    expect(getStoredState()).toEqual({
+      users: [users[0]],
+      chores: [chores[0]],
+      assignments: [],
+      historyCounts: { 'user-1': 0 },
+      choreHistoryCounts: { 'chore-1': { 'user-1': 0 } },
+    })
+  })
+
   it('sanitizes users and chores', () => {
     storeState({
       users: [users[0], null, { id: '', name: 'Missing id' }, { id: 'missing-name' }],
