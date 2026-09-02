@@ -10,9 +10,6 @@ type SoundOption = {
 
 const soundOptions: SoundOption[] = [
   { value: 'random', label: 'Random each spin', description: 'Draw a different result sound for every chore assignment.' },
-  { value: 'reel-stop', label: 'Classic reel stop', description: 'Fast mechanical clicks slowing to a final clunk.' },
-  { value: 'ka-ching', label: 'Ka-tjing', description: 'A register clack followed by a crisp coin-like ping.' },
-  { value: 'coin-cascade', label: 'Coin cascade', description: 'A quick shower of bright payout coins.' },
   { value: 'fruit-machine', label: 'Fruit-machine win', description: 'A short, upbeat electronic major-chord arpeggio.' },
   { value: 'jackpot-fanfare', label: 'Jackpot fanfare', description: 'A larger, longer celebration for a big result.' },
   { value: 'arcade-cheer', label: 'Arcade cheer', description: 'A stylized amusement-park crowd burst.' },
@@ -23,6 +20,7 @@ type SettingsPanelProps = {
   onResetEverything: () => void
   onPreviewResultSound: (preference: Exclude<ResultSoundPreference, 'random'>) => void
   onResultSoundPreferenceChange: (preference: ResultSoundPreference) => void
+  previewingResultSound: Exclude<ResultSoundPreference, 'random'> | null
   resultSoundPreference: ResultSoundPreference
 }
 
@@ -31,6 +29,7 @@ function SettingsPanel({
   onPreviewResultSound,
   onResetEverything,
   onResultSoundPreferenceChange,
+  previewingResultSound,
   resultSoundPreference,
 }: SettingsPanelProps) {
   return (
@@ -49,13 +48,14 @@ function SettingsPanel({
             const descriptionId = `result-sound-${option.value}-description`
             const inputId = `result-sound-${option.value}`
             const previewSound = option.value === 'random' ? null : option.value
+            const isPreviewing = previewSound === previewingResultSound
 
             return (
               <div
                 key={option.value}
                 className={[
-                  'rounded-[1.2rem] border border-[#8f6a3a] bg-[#f0ddb6] p-4 transition',
-                  isSelected ? 'border-[#a86d1d] bg-[#ecd08a]' : '',
+                  'relative rounded-[1.2rem] border border-[#8f6a3a] bg-[#f0ddb6] p-4 pr-12 transition',
+                  isSelected || isPreviewing ? 'border-[#a86d1d] bg-[#ecd08a]' : '',
                   disabled ? 'cursor-not-allowed opacity-55' : '',
                 ].filter(Boolean).join(' ')}
               >
@@ -80,11 +80,23 @@ function SettingsPanel({
                 {previewSound && (
                   <button
                     type="button"
-                    className="ml-7 mt-3 rounded-full border border-[#8f6a3a] bg-[#f8e9c5] px-3 py-1.5 text-xs font-black uppercase tracking-[0.08em] text-stone-900 transition hover:bg-[#fff4d8] disabled:cursor-not-allowed disabled:opacity-55"
+                    className={['assignment-card__switch-icon absolute right-3 top-3', isPreviewing ? 'ring-2 ring-[#f8e9c5] ring-offset-2 ring-offset-[#ecd08a]' : ''].filter(Boolean).join(' ')}
                     disabled={disabled}
                     onClick={() => onPreviewResultSound(previewSound)}
+                    aria-label={isPreviewing ? `Playing ${option.label}` : `Preview ${option.label}`}
+                    aria-pressed={isPreviewing}
+                    title={isPreviewing ? `Playing ${option.label}` : `Preview ${option.label}`}
                   >
-                    Preview sound
+                    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
+                      <path className="fill-current" d="M4 9v6h4l5 4V5L8 9H4Z" />
+                      {isPreviewing && (
+                        <g fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2">
+                          <path className="animate-pulse" d="M16 10a3 3 0 0 1 0 4" />
+                          <path className="animate-pulse" style={{ animationDelay: '120ms' }} d="M18 7.5a6.5 6.5 0 0 1 0 9" />
+                          <path className="animate-pulse" style={{ animationDelay: '240ms' }} d="M20 5a10 10 0 0 1 0 14" />
+                        </g>
+                      )}
+                    </svg>
                   </button>
                 )}
               </div>

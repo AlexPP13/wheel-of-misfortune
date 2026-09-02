@@ -1,7 +1,4 @@
 export type ResultSound =
-  | 'reel-stop'
-  | 'ka-ching'
-  | 'coin-cascade'
   | 'fruit-machine'
   | 'jackpot-fanfare'
   | 'arcade-cheer'
@@ -67,7 +64,7 @@ export class CarnivalAudio {
     this.stopLoop()
   }
 
-  async playBell(sound: ResultSound = 'ka-ching') {
+  async playBell(sound: ResultSound = 'fruit-machine') {
     const context = this.ensureContext()
 
     if (!context || !this.masterGain) {
@@ -185,29 +182,6 @@ export class CarnivalAudio {
 
   private playResultSound(sound: ResultSound, startTime: number) {
     switch (sound) {
-      case 'reel-stop': {
-        let offset = 0
-
-        for (let index = 0; index < SLOT_TICK_COUNT; index += 1) {
-          this.playNoise(startTime + offset, 0.035, 2600 - index * 75, 0.16)
-          this.playTone(startTime + offset, 900 - index * 25, 0.045, 'square', 0.07, 220)
-          offset += 0.06 + index * 0.016
-        }
-
-        return 1.6
-      }
-      case 'ka-ching':
-        this.playNoise(startTime, 0.06, 1100, 0.18)
-        this.playTone(startTime, 180, 0.07, 'square', 0.14, 105)
-        this.playTone(startTime + 0.07, 1550, 0.12, 'sine', 0.2, 2100)
-        this.playTone(startTime + 0.07, 2730, 0.22, 'sine', 0.11, 3100)
-        return 0.29
-      case 'coin-cascade':
-        for (const [index, offset] of [0, 0.09, 0.18, 0.3, 0.43, 0.56].entries()) {
-          this.playTone(startTime + offset, 2500 - index * 135, 0.16, 'sine', 0.16, 1900 - index * 70)
-          this.playTone(startTime + offset, 4100 - index * 120, 0.07, 'triangle', 0.06, 3300)
-        }
-        return 0.74
       case 'fruit-machine':
         for (const [frequency, offset] of [[523, 0], [659, 0.12], [784, 0.24], [1047, 0.36], [784, 0.52]]) {
           this.playTone(startTime + offset, frequency, 0.22, 'square', 0.11)

@@ -53,7 +53,7 @@ describe('App complete reset confirmation', () => {
     await waitFor(() => {
       expect(screen.queryByText('Ada')).not.toBeInTheDocument()
       expect(localStorage.getItem(STORAGE_KEY)).not.toContain('Ada')
-      expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').resultSoundPreference).toBe('ka-ching')
+      expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').resultSoundPreference).toBe('fruit-machine')
     })
   })
 

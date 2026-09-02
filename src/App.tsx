@@ -36,10 +36,11 @@ const REEL_SPIN_DURATION_MS =
   REEL_TICK_COUNT * REEL_TICK_BASE_DELAY_MS +
   REEL_TICK_DELAY_INCREMENT_MS * ((REEL_TICK_COUNT * (REEL_TICK_COUNT - 1)) / 2)
 
-const resultSounds: ResultSound[] = ['reel-stop', 'ka-ching', 'coin-cascade', 'fruit-machine', 'jackpot-fanfare', 'arcade-cheer']
+const resultSounds: ResultSound[] = ['fruit-machine', 'jackpot-fanfare', 'arcade-cheer']
 
 function App() {
   const carnivalAudioRef = useRef<CarnivalAudio | null>(null)
+  const previewPlaybackIdRef = useRef(0)
   const [initialState] = useState<PersistedState>(() => getStoredState())
   const [users, setUsers] = useState<User[]>(initialState.users)
   const [chores, setChores] = useState<Chore[]>(initialState.chores)
@@ -47,6 +48,7 @@ function App() {
   const [historyCounts, setHistoryCounts] = useState<HistoryStats>(initialState.historyCounts)
   const [choreHistoryCounts, setChoreHistoryCounts] = useState<ChoreHistoryStats>(initialState.choreHistoryCounts)
   const [resultSoundPreference, setResultSoundPreference] = useState<ResultSoundPreference>(initialState.resultSoundPreference)
+  const [previewingResultSound, setPreviewingResultSound] = useState<ResultSound | null>(null)
   const [userName, setUserName] = useState('')
   const [choreName, setChoreName] = useState('')
   const [isSpinning, setIsSpinning] = useState(false)
@@ -63,13 +65,23 @@ function App() {
     setConfettiBurstKey((currentBurstKey) => (currentBurstKey === completedBurstKey ? 0 : currentBurstKey))
   }, [])
 
-  const previewResultSound = (sound: ResultSound) => {
+  const previewResultSound = async (sound: ResultSound) => {
     if (!carnivalAudioRef.current) {
       carnivalAudioRef.current = new CarnivalAudio()
     }
 
+    const playbackId = previewPlaybackIdRef.current + 1
+    previewPlaybackIdRef.current = playbackId
+    setPreviewingResultSound(sound)
     carnivalAudioRef.current.stop()
-    void carnivalAudioRef.current.playBell(sound)
+
+    try {
+      await carnivalAudioRef.current.playBell(sound)
+    } finally {
+      if (previewPlaybackIdRef.current === playbackId) {
+        setPreviewingResultSound(null)
+      }
+    }
   }
 
   useEffect(() => {
@@ -613,6 +625,7 @@ function App() {
             disabled={isSpinning}
             onPreviewResultSound={previewResultSound}
             onResetEverything={resetEverything}
+            previewingResultSound={previewingResultSound}
             onResultSoundPreferenceChange={setResultSoundPreference}
             resultSoundPreference={resultSoundPreference}
           />

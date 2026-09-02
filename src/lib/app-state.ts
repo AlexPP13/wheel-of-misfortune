@@ -11,7 +11,7 @@ import type {
 
 export const STORAGE_KEY = 'wheel-of-unfortune-state'
 
-export const DEFAULT_RESULT_SOUND_PREFERENCE: ResultSoundPreference = 'ka-ching'
+export const DEFAULT_RESULT_SOUND_PREFERENCE: ResultSoundPreference = 'fruit-machine'
 
 const MAX_ASSIGNMENT_CANDIDATES = 5000
 
@@ -88,7 +88,7 @@ export function getStoredState(): PersistedState {
 }
 
 function isResultSoundPreference(value: unknown): value is ResultSoundPreference {
-  return value === 'random' || ['reel-stop', 'ka-ching', 'coin-cascade', 'fruit-machine', 'jackpot-fanfare', 'arcade-cheer'].includes(value as string)
+  return value === 'random' || ['fruit-machine', 'jackpot-fanfare', 'arcade-cheer'].includes(value as string)
 }
 
 export function sanitizeAssignments(assignments: unknown, users: User[], chores: Chore[]): Assignment[] {

@@ -20,9 +20,6 @@ export type HistoryStats = Record<string, number>
 export type ChoreHistoryStats = Record<string, Record<string, number>>
 
 export type ResultSoundPreference =
-  | 'reel-stop'
-  | 'ka-ching'
-  | 'coin-cascade'
   | 'fruit-machine'
   | 'jackpot-fanfare'
   | 'arcade-cheer'
