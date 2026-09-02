@@ -5,10 +5,13 @@ import type {
   FairnessDistributionEntry,
   HistoryStats,
   PersistedState,
+  ResultSoundPreference,
   User,
 } from '../types/app'
 
 export const STORAGE_KEY = 'wheel-of-unfortune-state'
+
+export const DEFAULT_RESULT_SOUND_PREFERENCE: ResultSoundPreference = 'ka-ching'
 
 const MAX_ASSIGNMENT_CANDIDATES = 5000
 
@@ -19,6 +22,7 @@ export function createDefaultState(): PersistedState {
     assignments: [],
     historyCounts: {},
     choreHistoryCounts: {},
+    resultSoundPreference: DEFAULT_RESULT_SOUND_PREFERENCE,
   }
 }
 
@@ -73,10 +77,18 @@ export function getStoredState(): PersistedState {
       return acc
     }, {})
 
-    return { users, chores, assignments, historyCounts, choreHistoryCounts }
+    const resultSoundPreference = isResultSoundPreference(parsed.resultSoundPreference)
+      ? parsed.resultSoundPreference
+      : fallback.resultSoundPreference
+
+    return { users, chores, assignments, historyCounts, choreHistoryCounts, resultSoundPreference }
   } catch {
     return fallback
   }
+}
+
+function isResultSoundPreference(value: unknown): value is ResultSoundPreference {
+  return value === 'random' || ['reel-stop', 'ka-ching', 'coin-cascade', 'fruit-machine', 'jackpot-fanfare', 'arcade-cheer'].includes(value as string)
 }
 
 export function sanitizeAssignments(assignments: unknown, users: User[], chores: Chore[]): Assignment[] {

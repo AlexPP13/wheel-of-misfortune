@@ -19,6 +19,15 @@ export type HistoryStats = Record<string, number>
 
 export type ChoreHistoryStats = Record<string, Record<string, number>>
 
+export type ResultSoundPreference =
+  | 'reel-stop'
+  | 'ka-ching'
+  | 'coin-cascade'
+  | 'fruit-machine'
+  | 'jackpot-fanfare'
+  | 'arcade-cheer'
+  | 'random'
+
 export type FairnessDistributionEntry = {
   user: User
   overallCount: number
@@ -33,6 +42,7 @@ export type PersistedState = {
   assignments: Assignment[]
   historyCounts: HistoryStats
   choreHistoryCounts: ChoreHistoryStats
+  resultSoundPreference: ResultSoundPreference
 }
 
 export type AssignmentRow = Assignment & {
