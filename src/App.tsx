@@ -2,6 +2,7 @@ import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } fro
 import AppShell from './components/AppShell'
 import AssignmentsPanel from './components/AssignmentsPanel'
 import BattlePanel, { type BattleDisplayResult } from './components/BattlePanel'
+import BattleSpectacle from './components/BattleSpectacle'
 import ChoreListPanel from './components/ChoreListPanel'
 import DoomDomeSection from './components/DoomDomeSection'
 import EditableListPanel from './components/EditableListPanel'
@@ -13,10 +14,11 @@ import {
   chooseFairestAssignments,
   createDefaultState,
   getStoredState,
-  resolveRandomBattle,
+  resolveHistoryBattle,
+  type HistoryBattleResult,
+  type HistoryWager,
   transferAssignmentOwner,
 } from './lib/app-state'
-import { playBattleSpectacle } from './lib/battleAudio'
 import { CarnivalAudio, type ResultSound } from './lib/carnivalAudio'
 import { CONFETTI_BURST_DURATION_MS } from './components/ConfettiBurst'
 import type {
@@ -59,6 +61,8 @@ function App() {
   const [activeView, setActiveView] = useState<NavigationView>('users')
   const [lastBattleResult, setLastBattleResult] = useState<BattleDisplayResult | null>(null)
   const [selectedBattleUserIds, setSelectedBattleUserIds] = useState<string[]>([])
+  const [battleUserIdsThisRound, setBattleUserIdsThisRound] = useState<string[]>(initialState.battleUserIdsThisRound)
+  const [activeBattle, setActiveBattle] = useState<{ participants: User[]; result: HistoryBattleResult; winner: User } | null>(null)
   const [message, setMessage] = useState('Summon the cast, feed the wheel, and unleash chore destiny.')
 
   const clearConfettiBurst = useCallback((completedBurstKey: number) => {
@@ -104,12 +108,13 @@ function App() {
         users,
         chores,
         assignments,
-        historyCounts: sanitizedCounts,
-        choreHistoryCounts: sanitizedChoreHistoryCounts,
-        resultSoundPreference,
+          historyCounts: sanitizedCounts,
+          choreHistoryCounts: sanitizedChoreHistoryCounts,
+          battleUserIdsThisRound,
+          resultSoundPreference,
       }),
     )
-  }, [users, chores, assignments, historyCounts, choreHistoryCounts, resultSoundPreference])
+  }, [users, chores, assignments, historyCounts, choreHistoryCounts, battleUserIdsThisRound, resultSoundPreference])
 
   useEffect(() => {
     return () => {
@@ -148,10 +153,9 @@ function App() {
   const canSpin = enabledUsers.length > 0 && remainingChores.length > 0 && !isSpinning
   const hasUsers = users.length > 0
   const hasChores = chores.length > 0
-  const assignedBattleUserIds = useMemo(() => new Set(assignments.map((assignment) => assignment.userId)), [assignments])
   const eligibleBattleUserIds = useMemo(
-    () => users.filter((user) => assignedBattleUserIds.has(user.id) && !user.disabled).map((user) => user.id),
-    [assignedBattleUserIds, users],
+    () => users.filter((user) => !user.disabled && !battleUserIdsThisRound.includes(user.id)).map((user) => user.id),
+    [battleUserIdsThisRound, users],
   )
   const numberOfEligibleBattleUsers = eligibleBattleUserIds.length
 
@@ -382,6 +386,7 @@ function App() {
     setIsReelSpinning(false)
     setLastBattleResult(null)
     setSelectedBattleUserIds([])
+    setBattleUserIdsThisRound([])
     setMessage('Round wiped clean. The crowd demands another overproduced catastrophe.')
   }
 
@@ -403,6 +408,7 @@ function App() {
     setAssignments(freshState.assignments)
     setHistoryCounts(freshState.historyCounts)
     setChoreHistoryCounts(freshState.choreHistoryCounts)
+    setBattleUserIdsThisRound(freshState.battleUserIdsThisRound)
     setResultSoundPreference(freshState.resultSoundPreference)
     setCurrentChoreId(null)
     setActiveUserId(null)
@@ -443,55 +449,65 @@ function App() {
     )
   }
 
-  const runRandomBattle = () => {
-    if (isSpinning) return
+  const runHistoryBattle = (wagers: HistoryWager[]) => {
+    if (isSpinning || activeBattle) return
 
     const eligibleUserIds = selectedBattleUserIds.filter((userId) => eligibleBattleUserIds.includes(userId))
 
     if (eligibleUserIds.length < 2) {
-      setMessage('🎲 Select at least two assigned contestants for battle.')
+      setMessage('🎲 Select at least two contestants for a history battle.')
       return
     }
 
-    const result = resolveRandomBattle({
-      assignments,
-      eligibleUserIds,
+    const result = resolveHistoryBattle({
+      participantUserIds: eligibleUserIds,
+      wagers,
       historyCounts,
       choreHistoryCounts,
     })
 
     if (!result) {
-      setMessage('🎲 Battle needs at least two assigned contestants.')
+      setMessage('🎲 Both contestants need a valid task-history wager.')
       return
     }
 
-    setAssignments(result.assignments)
     setHistoryCounts(result.historyCounts)
     setChoreHistoryCounts(result.choreHistoryCounts)
+    setBattleUserIdsThisRound((current) => [...new Set([...current, ...eligibleUserIds])])
+    setSelectedBattleUserIds([])
 
-    setLastBattleResult({
-      winnerUserIds: result.winnerUserIds,
-      loserUserId: result.loserUserId,
-      transferredChoreIds: result.transferredChoreIds,
+    const winner = users.find((user) => user.id === result.winnerUserId)
+    if (!winner) return
+
+    setActiveBattle({
+      participants: eligibleUserIds.map((userId) => users.find((user) => user.id === userId)).filter((user): user is User => Boolean(user)),
+      result,
+      winner,
     })
+    setMessage('⚔️ Stakes locked. The history battle begins...')
+  }
 
-    const winnerNames = result.winnerUserIds
+  const completeBattleSpectacle = () => {
+    if (!activeBattle) return
+
+    const loserNames = activeBattle.result.loserUserIds
       .map((userId) => users.find((user) => user.id === userId)?.name)
       .filter((name): name is string => Boolean(name))
-    const loser = users.find((user) => user.id === result.loserUserId)
-    const transferredChoreNames = result.transferredChoreIds
-      .map((choreId) => chores.find((chore) => chore.id === choreId)?.name)
-      .filter((name): name is string => Boolean(name))
+    const transferredHistory = activeBattle.result.transferredWagers
+      .map((wager) => `${wager.amount}× ${chores.find((chore) => chore.id === wager.choreId)?.name ?? 'task history'}`)
+      .join(', ')
 
+    setLastBattleResult({
+      winnerUserId: activeBattle.result.winnerUserId,
+      loserUserIds: activeBattle.result.loserUserIds,
+      transferredWagers: activeBattle.result.transferredWagers,
+    })
     setMessage(
-      loser && winnerNames.length > 0 && transferredChoreNames.length > 0
-        ? `🎲 ${loser.name} lost the battle. ${winnerNames.join(', ')} escaped, and ${transferredChoreNames.join(', ')} moved to ${loser.name}.`
-        : '🎲 Battle resolved. The loser inherited the selected winners’ tasks.',
+      loserNames.length > 0 && transferredHistory
+        ? `👑 ${activeBattle.winner.name} won and took ${transferredHistory} from ${loserNames.join(', ')}.`
+        : '👑 Battle resolved. The winner took every wagered history entry.',
     )
-
-    if (loser) {
-      playBattleSpectacle(`${loser.name} has fallen. Double damage. The chores are theirs now.`)
-    }
+    setActiveBattle(null)
   }
 
   const toggleBattleUser = (userId: string) => {
@@ -572,7 +588,7 @@ function App() {
           <EditableListPanel
             buttonLabel="Add"
             count={users.length}
-            disabled={isSpinning}
+            disabled={isSpinning || Boolean(activeBattle)}
             inputLabel="User name"
             inputPlaceholder="Add a contestant"
             items={userItems}
@@ -637,12 +653,12 @@ function App() {
       return (
         <section className="w-full">
           <BattlePanel
-            assignments={assignments}
-            assignmentRows={assignmentRows}
+            choreHistoryCounts={choreHistoryCounts}
             chores={chores}
             disabled={isSpinning}
+            foughtUserIds={battleUserIdsThisRound}
             lastBattleResult={lastBattleResult}
-            onRunBattle={runRandomBattle}
+            onRunBattle={runHistoryBattle}
             onToggleUser={toggleBattleUser}
             selectedUserIds={selectedBattleUserIds}
             users={users}
@@ -691,6 +707,7 @@ function App() {
         onChange={setActiveView}
       />
       {renderActiveView()}
+      {activeBattle ? <BattleSpectacle participants={activeBattle.participants} winner={activeBattle.winner} onComplete={completeBattleSpectacle} /> : null}
     </AppShell>
   )
 }

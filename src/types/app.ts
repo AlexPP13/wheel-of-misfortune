@@ -39,6 +39,7 @@ export type PersistedState = {
   assignments: Assignment[]
   historyCounts: HistoryStats
   choreHistoryCounts: ChoreHistoryStats
+  battleUserIdsThisRound: string[]
   resultSoundPreference: ResultSoundPreference
 }
 
