@@ -7,6 +7,7 @@ import DoomDomeSection from './components/DoomDomeSection'
 import EditableListPanel from './components/EditableListPanel'
 import FairnessRadar from './components/FairnessRadar'
 import NavigationTabs, { type NavigationView } from './components/NavigationTabs'
+import SettingsPanel from './components/SettingsPanel'
 import {
   STORAGE_KEY,
   chooseFairestAssignments,
@@ -16,7 +17,7 @@ import {
   transferAssignmentOwner,
 } from './lib/app-state'
 import { playBattleSpectacle } from './lib/battleAudio'
-import { CarnivalAudio } from './lib/carnivalAudio'
+import { CarnivalAudio, type ResultSound } from './lib/carnivalAudio'
 import { CONFETTI_BURST_DURATION_MS } from './components/ConfettiBurst'
 import type {
   Assignment,
@@ -24,6 +25,7 @@ import type {
   ChoreHistoryStats,
   HistoryStats,
   PersistedState,
+  ResultSoundPreference,
   User,
 } from './types/app'
 
@@ -34,14 +36,19 @@ const REEL_SPIN_DURATION_MS =
   REEL_TICK_COUNT * REEL_TICK_BASE_DELAY_MS +
   REEL_TICK_DELAY_INCREMENT_MS * ((REEL_TICK_COUNT * (REEL_TICK_COUNT - 1)) / 2)
 
+const resultSounds: ResultSound[] = ['fruit-machine', 'jackpot-fanfare', 'arcade-cheer']
+
 function App() {
   const carnivalAudioRef = useRef<CarnivalAudio | null>(null)
+  const previewPlaybackIdRef = useRef(0)
   const [initialState] = useState<PersistedState>(() => getStoredState())
   const [users, setUsers] = useState<User[]>(initialState.users)
   const [chores, setChores] = useState<Chore[]>(initialState.chores)
   const [assignments, setAssignments] = useState<Assignment[]>(initialState.assignments)
   const [historyCounts, setHistoryCounts] = useState<HistoryStats>(initialState.historyCounts)
   const [choreHistoryCounts, setChoreHistoryCounts] = useState<ChoreHistoryStats>(initialState.choreHistoryCounts)
+  const [resultSoundPreference, setResultSoundPreference] = useState<ResultSoundPreference>(initialState.resultSoundPreference)
+  const [previewingResultSound, setPreviewingResultSound] = useState<ResultSound | null>(null)
   const [userName, setUserName] = useState('')
   const [choreName, setChoreName] = useState('')
   const [isSpinning, setIsSpinning] = useState(false)
@@ -57,6 +64,25 @@ function App() {
   const clearConfettiBurst = useCallback((completedBurstKey: number) => {
     setConfettiBurstKey((currentBurstKey) => (currentBurstKey === completedBurstKey ? 0 : currentBurstKey))
   }, [])
+
+  const previewResultSound = async (sound: ResultSound) => {
+    if (!carnivalAudioRef.current) {
+      carnivalAudioRef.current = new CarnivalAudio()
+    }
+
+    const playbackId = previewPlaybackIdRef.current + 1
+    previewPlaybackIdRef.current = playbackId
+    setPreviewingResultSound(sound)
+    carnivalAudioRef.current.stop()
+
+    try {
+      await carnivalAudioRef.current.playBell(sound)
+    } finally {
+      if (previewPlaybackIdRef.current === playbackId) {
+        setPreviewingResultSound(null)
+      }
+    }
+  }
 
   useEffect(() => {
     const sanitizedCounts = users.reduce<HistoryStats>((acc, user) => {
@@ -80,9 +106,10 @@ function App() {
         assignments,
         historyCounts: sanitizedCounts,
         choreHistoryCounts: sanitizedChoreHistoryCounts,
+        resultSoundPreference,
       }),
     )
-  }, [users, chores, assignments, historyCounts, choreHistoryCounts])
+  }, [users, chores, assignments, historyCounts, choreHistoryCounts, resultSoundPreference])
 
   useEffect(() => {
     return () => {
@@ -322,7 +349,10 @@ function App() {
         setChoreHistoryCounts(nextChoreCounts)
         // Start the jackpot chime just before this state update so the sound and
         // the next confetti render begin together instead of playing in sequence.
-        void carnivalAudioRef.current?.playBell()
+        const selectedSound = resultSoundPreference === 'random'
+          ? resultSounds[Math.floor(Math.random() * resultSounds.length)]
+          : resultSoundPreference
+        void carnivalAudioRef.current?.playBell(selectedSound)
         setConfettiBurstKey((current) => current + 1)
         setMessage(`🔥 ${chosenUser.name} has been dramatically volunteered for ${chore.name}.`)
 
@@ -373,6 +403,7 @@ function App() {
     setAssignments(freshState.assignments)
     setHistoryCounts(freshState.historyCounts)
     setChoreHistoryCounts(freshState.choreHistoryCounts)
+    setResultSoundPreference(freshState.resultSoundPreference)
     setCurrentChoreId(null)
     setActiveUserId(null)
     setIsSpinning(false)
@@ -516,21 +547,21 @@ function App() {
       label: 'Play',
       badge: assignments.length,
       ready: hasUsers && hasChores,
-      step: 4,
+      step: 3,
     },
     {
       id: 'battle' as const,
       label: 'Battle',
       badge: numberOfEligibleBattleUsers,
       ready: numberOfEligibleBattleUsers >= 2,
-      step: 5,
+      step: 4,
     },
     {
       id: 'fairness' as const,
       label: 'Fairness',
       badge: users.length,
       ready: hasUsers && hasChores,
-      step: 6,
+      step: 5,
     },
   ]
 
@@ -582,6 +613,21 @@ function App() {
             choreHistoryCounts={choreHistoryCounts}
             historyCounts={historyCounts}
             users={users}
+          />
+        </section>
+      )
+    }
+
+    if (activeView === 'settings') {
+      return (
+        <section className="w-full">
+          <SettingsPanel
+            disabled={isSpinning}
+            onPreviewResultSound={previewResultSound}
+            onResetEverything={resetEverything}
+            previewingResultSound={previewingResultSound}
+            onResultSoundPreferenceChange={setResultSoundPreference}
+            resultSoundPreference={resultSoundPreference}
           />
         </section>
       )
@@ -641,10 +687,8 @@ function App() {
     <AppShell>
       <NavigationTabs
         activeView={activeView}
-        disabled={isSpinning}
         items={viewItems}
         onChange={setActiveView}
-        onResetEverything={resetEverything}
       />
       {renderActiveView()}
     </AppShell>

@@ -6,17 +6,15 @@ type NavigationItem = {
   step: number
 }
 
-export type NavigationView = 'users' | 'chores' | 'play' | 'battle' | 'fairness'
+export type NavigationView = 'users' | 'chores' | 'settings' | 'play' | 'battle' | 'fairness'
 
 type NavigationTabsProps = {
   activeView: NavigationView
-  disabled?: boolean
   items: NavigationItem[]
   onChange: (view: NavigationView) => void
-  onResetEverything: () => void
 }
 
-function NavigationTabs({ activeView, disabled = false, items, onChange, onResetEverything }: NavigationTabsProps) {
+function NavigationTabs({ activeView, items, onChange }: NavigationTabsProps) {
   return (
     <nav className="glass-panel mb-4 p-2.5 sm:p-3" aria-label="App views">
       <div className="mb-2 flex items-center justify-between gap-4 px-2">
@@ -26,11 +24,11 @@ function NavigationTabs({ activeView, disabled = false, items, onChange, onReset
         </div>
         <button
           type="button"
-          className="dramatic-button dramatic-button-danger dramatic-button-small"
-          onClick={onResetEverything}
-          disabled={disabled}
+          className="dramatic-button dramatic-button-small"
+          onClick={() => onChange('settings')}
+          aria-pressed={activeView === 'settings'}
         >
-          Complete reset
+          Settings
         </button>
       </div>
 

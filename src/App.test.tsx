@@ -30,11 +30,13 @@ describe('App complete reset confirmation', () => {
 
     render(<App />)
 
+    await userEvent.click(screen.getByRole('button', { name: 'Settings' }))
     await userEvent.click(screen.getByRole('button', { name: 'Complete reset' }))
 
     expect(confirmSpy).toHaveBeenCalledWith(
       'This will delete all users, chores, assignments, and history. Continue?',
     )
+    await userEvent.click(screen.getByRole('button', { name: /Users/ }))
     expect(screen.getByText('Ada')).toBeInTheDocument()
     expect(localStorage.getItem(STORAGE_KEY)).toContain('Ada')
   })
@@ -45,11 +47,24 @@ describe('App complete reset confirmation', () => {
 
     render(<App />)
 
+    await userEvent.click(screen.getByRole('button', { name: 'Settings' }))
     await userEvent.click(screen.getByRole('button', { name: 'Complete reset' }))
 
     await waitFor(() => {
       expect(screen.queryByText('Ada')).not.toBeInTheDocument()
       expect(localStorage.getItem(STORAGE_KEY)).not.toContain('Ada')
+      expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').resultSoundPreference).toBe('fruit-machine')
+    })
+  })
+
+  it('persists the selected result sound preference', async () => {
+    render(<App />)
+
+    await userEvent.click(screen.getByRole('button', { name: /settings/i }))
+    await userEvent.click(screen.getByRole('radio', { name: 'Jackpot fanfare' }))
+
+    await waitFor(() => {
+      expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').resultSoundPreference).toBe('jackpot-fanfare')
     })
   })
 })

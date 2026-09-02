@@ -61,6 +61,7 @@ describe('getStoredState', () => {
       assignments: [],
       historyCounts: { 'user-1': 0 },
       choreHistoryCounts: { 'chore-1': { 'user-1': 0 } },
+       resultSoundPreference: 'fruit-machine',
     })
   })
 
@@ -74,6 +75,18 @@ describe('getStoredState', () => {
       users: [users[0]],
       chores: [chores[0]],
     })
+  })
+
+  it('uses the legacy-compatible default when no result sound preference is stored', () => {
+    storeState({ users, chores })
+
+    expect(getStoredState().resultSoundPreference).toBe('fruit-machine')
+  })
+
+  it('keeps valid stored result sound preferences', () => {
+    storeState({ users, chores, resultSoundPreference: 'jackpot-fanfare' })
+
+    expect(getStoredState().resultSoundPreference).toBe('jackpot-fanfare')
   })
 
   it('keeps only assignments with valid userId and choreId', () => {

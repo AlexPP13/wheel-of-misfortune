@@ -55,14 +55,13 @@ describe('ChoreListPanel disabled controls', () => {
   })
 })
 
-describe('NavigationTabs disabled controls', () => {
-  it('disables complete reset while tab navigation still works', async () => {
+describe('NavigationTabs', () => {
+  it('keeps settings in the header while tab navigation still works', async () => {
     const onChange = vi.fn<(view: NavigationView) => void>()
 
     render(
       <NavigationTabs
         activeView="users"
-        disabled
         items={[
           { id: 'users', label: 'Users', badge: 1, ready: true, step: 1 },
           { id: 'chores', label: 'Chores', badge: 1, ready: true, step: 2 },
@@ -71,11 +70,12 @@ describe('NavigationTabs disabled controls', () => {
           { id: 'fairness', label: 'Fairness', badge: 1, ready: true, step: 5 },
         ]}
         onChange={onChange}
-        onResetEverything={vi.fn()}
       />,
     )
 
-    expect(screen.getByRole('button', { name: 'Complete reset' })).toBeDisabled()
+    await userEvent.click(screen.getByRole('button', { name: 'Settings' }))
+
+    expect(onChange).toHaveBeenCalledWith('settings')
 
     await userEvent.click(screen.getByRole('button', { name: /Chores/ }))
 

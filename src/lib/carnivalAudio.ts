@@ -1,27 +1,15 @@
-type BellStrike = {
-  frequency: number
-  offset: number
-  duration: number
-}
+export type ResultSound =
+  | 'fruit-machine'
+  | 'jackpot-fanfare'
+  | 'arcade-cheer'
 
 // Match the reel cadence in App.tsx: quick clicks at the start, then a gradual slowdown.
 const SLOT_TICK_START_DELAY_MS = 85
 const SLOT_TICK_DELAY_INCREMENT_MS = 16
 const SLOT_TICK_COUNT = 12
 
-// A coin-like cash-register win: a mechanical "ka" followed by a sharp metallic "tjing".
-const KA_CHING_PATTERN: BellStrike[] = [
-  { frequency: 1396.91, offset: 0.035, duration: 0.13 },
-  { frequency: 2349.32, offset: 0.115, duration: 0.46 },
-]
-
-const KA_CHING_PATTERN_DURATION = KA_CHING_PATTERN.reduce(
-  (total, strike) => Math.max(total, strike.offset + strike.duration),
-  0,
-)
-
-function createNoiseBuffer(context: AudioContext) {
-  const length = Math.max(1, Math.floor(context.sampleRate * 0.08))
+function createNoiseBuffer(context: AudioContext, duration = 0.08) {
+  const length = Math.max(1, Math.floor(context.sampleRate * duration))
   const buffer = context.createBuffer(1, length, context.sampleRate)
   const channel = buffer.getChannelData(0)
 
@@ -76,7 +64,7 @@ export class CarnivalAudio {
     this.stopLoop()
   }
 
-  async playBell() {
+  async playBell(sound: ResultSound = 'fruit-machine') {
     const context = this.ensureContext()
 
     if (!context || !this.masterGain) {
@@ -89,13 +77,8 @@ export class CarnivalAudio {
 
     const startTime = context.currentTime + 0.02
 
-    this.triggerReelTick(startTime, 0)
-
-    for (const strike of KA_CHING_PATTERN) {
-      this.playBellStrike(startTime + strike.offset, strike.frequency, strike.duration)
-    }
-
-    await new Promise((resolve) => window.setTimeout(resolve, KA_CHING_PATTERN_DURATION * 1000))
+    const duration = this.playResultSound(sound, startTime)
+    await new Promise((resolve) => window.setTimeout(resolve, duration * 1000))
   }
 
   async dispose() {
@@ -197,7 +180,35 @@ export class CarnivalAudio {
     click.stop(startTime + 0.05)
   }
 
-  private playBellStrike(startTime: number, frequency: number, duration: number) {
+  private playResultSound(sound: ResultSound, startTime: number) {
+    switch (sound) {
+      case 'fruit-machine':
+        for (const [frequency, offset] of [[523, 0], [659, 0.12], [784, 0.24], [1047, 0.36], [784, 0.52]]) {
+          this.playTone(startTime + offset, frequency, 0.22, 'square', 0.11)
+        }
+        return 0.74
+      case 'jackpot-fanfare':
+        for (const [index, [frequency, offset]] of [[392, 0], [523, 0.1], [659, 0.2], [784, 0.3], [1047, 0.42]].entries()) {
+          this.playTone(startTime + offset, frequency, index === 4 ? 0.68 : 0.2, 'triangle', 0.15)
+        }
+        return 1.1
+      case 'arcade-cheer':
+        this.playNoise(startTime, 1.15, 850, 0.1)
+        for (const [index, frequency] of [155, 185, 220, 262, 294].entries()) {
+          this.playTone(startTime + index * 0.08, frequency, 0.8, 'sawtooth', 0.045, frequency * 1.35)
+        }
+        return 1.2
+    }
+  }
+
+  private playTone(
+    startTime: number,
+    frequency: number,
+    duration: number,
+    type: OscillatorType = 'sine',
+    volume = 0.18,
+    endFrequency = frequency,
+  ) {
     const context = this.context
     const masterGain = this.masterGain
 
@@ -205,57 +216,60 @@ export class CarnivalAudio {
       return
     }
 
-    const fundamental = context.createOscillator()
-    const shimmer = context.createOscillator()
-    const strike = context.createOscillator()
-    const strikeGain = context.createGain()
-    const shimmerGain = context.createGain()
-    const attackGain = context.createGain()
+    const oscillator = context.createOscillator()
+    const gain = context.createGain()
 
-    fundamental.type = 'sine'
-    shimmer.type = 'sine'
-    strike.type = 'triangle'
-    fundamental.frequency.setValueAtTime(frequency, startTime)
-    // Slightly inharmonic upper partials give the single note a real struck-chime character.
-    shimmer.frequency.setValueAtTime(frequency * 2.76, startTime)
-    strike.frequency.setValueAtTime(frequency * 4.2, startTime)
-    strikeGain.gain.setValueAtTime(0.0001, startTime)
-    strikeGain.gain.exponentialRampToValueAtTime(0.58, startTime + 0.006)
-    strikeGain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration)
-    shimmerGain.gain.setValueAtTime(0.0001, startTime)
-    shimmerGain.gain.exponentialRampToValueAtTime(0.32, startTime + 0.006)
-    shimmerGain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration * 0.78)
-    attackGain.gain.setValueAtTime(0.0001, startTime)
-    attackGain.gain.exponentialRampToValueAtTime(0.18, startTime + 0.002)
-    attackGain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.07)
-    fundamental.connect(strikeGain)
-    shimmer.connect(shimmerGain)
-    strike.connect(attackGain)
-    strikeGain.connect(masterGain)
-    shimmerGain.connect(masterGain)
-    attackGain.connect(masterGain)
+    oscillator.type = type
+    oscillator.frequency.setValueAtTime(frequency, startTime)
+    oscillator.frequency.exponentialRampToValueAtTime(endFrequency, startTime + duration)
+    gain.gain.setValueAtTime(0.0001, startTime)
+    gain.gain.exponentialRampToValueAtTime(volume, startTime + 0.008)
+    gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration)
+    oscillator.connect(gain)
+    gain.connect(masterGain)
 
-    const cleanup = () => {
-      this.activeOscillators.delete(fundamental)
-      this.activeOscillators.delete(shimmer)
-      this.activeOscillators.delete(strike)
-      fundamental.disconnect()
-      shimmer.disconnect()
-      strike.disconnect()
-      strikeGain.disconnect()
-      shimmerGain.disconnect()
-      attackGain.disconnect()
+    oscillator.onended = () => {
+      this.activeOscillators.delete(oscillator)
+      oscillator.disconnect()
+      gain.disconnect()
     }
 
-    fundamental.onended = cleanup
-    this.activeOscillators.add(fundamental)
-    this.activeOscillators.add(shimmer)
-    this.activeOscillators.add(strike)
-    fundamental.start(startTime)
-    shimmer.start(startTime)
-    strike.start(startTime)
-    fundamental.stop(startTime + duration + 0.05)
-    shimmer.stop(startTime + duration * 0.82)
-    strike.stop(startTime + 0.075)
+    this.activeOscillators.add(oscillator)
+    oscillator.start(startTime)
+    oscillator.stop(startTime + duration + 0.02)
+  }
+
+  private playNoise(startTime: number, duration: number, frequency: number, volume = 0.14) {
+    const context = this.context
+    const masterGain = this.masterGain
+
+    if (!context || !masterGain) {
+      return
+    }
+
+    const source = context.createBufferSource()
+    const filter = context.createBiquadFilter()
+    const gain = context.createGain()
+
+    source.buffer = createNoiseBuffer(context, duration)
+    filter.type = 'bandpass'
+    filter.frequency.setValueAtTime(frequency, startTime)
+    filter.Q.setValueAtTime(2, startTime)
+    gain.gain.setValueAtTime(volume, startTime)
+    gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration)
+    source.connect(filter)
+    filter.connect(gain)
+    gain.connect(masterGain)
+
+    source.onended = () => {
+      this.activeNoise.delete(source)
+      source.disconnect()
+      filter.disconnect()
+      gain.disconnect()
+    }
+
+    this.activeNoise.add(source)
+    source.start(startTime)
+    source.stop(startTime + duration)
   }
 }
