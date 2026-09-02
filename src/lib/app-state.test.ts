@@ -6,7 +6,7 @@ import {
   chooseFairestAssignments,
   createDefaultState,
   getStoredState,
-  resolveRandomBattle,
+  resolveHistoryBattle,
   transferAssignmentOwner,
 } from './app-state'
 
@@ -61,6 +61,7 @@ describe('getStoredState', () => {
       assignments: [],
       historyCounts: { 'user-1': 0 },
       choreHistoryCounts: { 'chore-1': { 'user-1': 0 } },
+      battleUserIdsThisRound: [],
        resultSoundPreference: 'fruit-machine',
     })
   })
@@ -323,12 +324,7 @@ describe('transferAssignmentOwner', () => {
   })
 })
 
-describe('resolveRandomBattle', () => {
-  const battleAssignments: Assignment[] = [
-    { choreId: 'chore-1', userId: 'user-1' },
-    { choreId: 'chore-2', userId: 'user-2' },
-    { choreId: 'chore-3', userId: 'user-1' },
-  ]
+describe('resolveHistoryBattle', () => {
   const historyCounts: HistoryStats = { 'user-1': 2, 'user-2': 1, 'user-3': 0 }
   const choreHistoryCounts: ChoreHistoryStats = {
     'chore-1': { 'user-1': 1, 'user-2': 0, 'user-3': 0 },
@@ -336,51 +332,75 @@ describe('resolveRandomBattle', () => {
     'chore-3': { 'user-1': 1, 'user-2': 0, 'user-3': 0 },
   }
 
-  it('returns null when fewer than two eligible assigned users exist', () => {
+  it('returns null unless at least two contestants have valid wagers', () => {
     expect(
-      resolveRandomBattle({
-        assignments: battleAssignments,
-        eligibleUserIds: ['user-1', 'user-3'],
+      resolveHistoryBattle({
+        participantUserIds: ['user-1'],
+        wagers: [],
         historyCounts,
         choreHistoryCounts,
       }),
     ).toBeNull()
   })
 
-  it('selects one loser and transfers every selected winner task to them', () => {
-    const result = resolveRandomBattle({
-      assignments: battleAssignments,
-      eligibleUserIds: ['user-1', 'user-2'],
+  it('uses a 50 / 50 roll and transfers only the loser’s exact task history wager', () => {
+    const result = resolveHistoryBattle({
+      participantUserIds: ['user-1', 'user-2'],
+      wagers: [
+        { userId: 'user-1', choreId: 'chore-1', amount: 1 },
+        { userId: 'user-1', choreId: 'chore-3', amount: 1 },
+        { userId: 'user-2', choreId: 'chore-2', amount: 1 },
+      ],
       historyCounts,
       choreHistoryCounts,
+      rng: () => 0.1,
+    })
+
+    expect(result?.winnerUserId).toBe('user-1')
+    expect(result?.loserUserIds).toEqual(['user-2'])
+    expect(result?.transferredWagers).toEqual([{ userId: 'user-2', choreId: 'chore-2', amount: 1 }])
+    expect(result?.historyCounts).toEqual({ 'user-1': 3, 'user-2': 0, 'user-3': 0 })
+    expect(result?.choreHistoryCounts['chore-1']).toEqual({ 'user-1': 1, 'user-2': 0, 'user-3': 0 })
+    expect(result?.choreHistoryCounts['chore-2']).toEqual({ 'user-1': 1, 'user-2': 0, 'user-3': 0 })
+    expect(result?.choreHistoryCounts['chore-3']).toEqual({ 'user-1': 1, 'user-2': 0, 'user-3': 0 })
+  })
+
+  it('rejects a wager that exceeds available task history', () => {
+    const result = resolveHistoryBattle({
+      participantUserIds: ['user-1', 'user-2'],
+      wagers: [
+        { userId: 'user-1', choreId: 'chore-1', amount: 2 },
+        { userId: 'user-2', choreId: 'chore-2', amount: 1 },
+      ],
+      historyCounts,
+      choreHistoryCounts,
+    })
+
+    expect(result).toBeNull()
+  })
+
+  it('gives one equally selected winner every other contestant’s wagered history', () => {
+    const result = resolveHistoryBattle({
+      participantUserIds: ['user-1', 'user-2', 'user-3'],
+      wagers: [
+        { userId: 'user-1', choreId: 'chore-1', amount: 1 },
+        { userId: 'user-2', choreId: 'chore-2', amount: 1 },
+        { userId: 'user-3', choreId: 'chore-1', amount: 1 },
+      ],
+      historyCounts: { 'user-1': 2, 'user-2': 1, 'user-3': 1 },
+      choreHistoryCounts: {
+        'chore-1': { 'user-1': 1, 'user-2': 0, 'user-3': 1 },
+        'chore-2': { 'user-1': 0, 'user-2': 1, 'user-3': 0 },
+      },
       rng: () => 0.9,
     })
 
-    expect(result?.participantUserIds).toEqual(['user-1', 'user-2'])
-    expect(result?.winnerUserIds).toEqual(['user-1'])
-    expect(result?.loserUserId).toBe('user-2')
-    expect(result?.transferredChoreIds).toEqual(['chore-1', 'chore-3'])
-    expect(result?.assignments).toEqual([
-      { choreId: 'chore-1', userId: 'user-2' },
-      { choreId: 'chore-2', userId: 'user-2' },
-      { choreId: 'chore-3', userId: 'user-2' },
-    ])
-    expect(result?.historyCounts).toEqual({ 'user-1': 0, 'user-2': 3, 'user-3': 0 })
-    expect(result?.choreHistoryCounts['chore-1']).toEqual({ 'user-1': 0, 'user-2': 1, 'user-3': 0 })
-    expect(result?.choreHistoryCounts['chore-3']).toEqual({ 'user-1': 0, 'user-2': 1, 'user-3': 0 })
-    expect(result?.choreHistoryCounts['chore-2']).toEqual({ 'user-1': 0, 'user-2': 1, 'user-3': 0 })
-  })
-
-  it('weights loser selection by the number of wagered tasks', () => {
-    const result = resolveRandomBattle({
-      assignments: battleAssignments,
-      eligibleUserIds: ['user-1', 'user-2'],
-      historyCounts,
-      choreHistoryCounts,
-      rng: () => 0.6,
+    expect(result?.winnerUserId).toBe('user-3')
+    expect(result?.loserUserIds).toEqual(['user-1', 'user-2'])
+    expect(result?.historyCounts).toEqual({ 'user-1': 1, 'user-2': 0, 'user-3': 3 })
+    expect(result?.choreHistoryCounts).toEqual({
+      'chore-1': { 'user-1': 0, 'user-2': 0, 'user-3': 2 },
+      'chore-2': { 'user-1': 0, 'user-2': 0, 'user-3': 1 },
     })
-
-    expect(result?.loserUserId).toBe('user-1')
-    expect(result?.transferredChoreIds).toEqual(['chore-2'])
   })
 })

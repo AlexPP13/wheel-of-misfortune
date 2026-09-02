@@ -22,6 +22,7 @@ export function createDefaultState(): PersistedState {
     assignments: [],
     historyCounts: {},
     choreHistoryCounts: {},
+    battleUserIdsThisRound: [],
     resultSoundPreference: DEFAULT_RESULT_SOUND_PREFERENCE,
   }
 }
@@ -56,6 +57,11 @@ export function getStoredState(): PersistedState {
           }))
       : fallback.chores
     const assignments = sanitizeAssignments(parsed.assignments, users, chores)
+    const battleUserIdsThisRound = Array.isArray(parsed.battleUserIdsThisRound)
+      ? parsed.battleUserIdsThisRound.filter((userId): userId is string => (
+        typeof userId === 'string' && users.some((user) => user.id === userId)
+      ))
+      : []
     const incomingCounts = parsed.historyCounts ?? {}
     const incomingChoreHistoryCounts = parsed.choreHistoryCounts ?? {}
 
@@ -81,7 +87,7 @@ export function getStoredState(): PersistedState {
       ? parsed.resultSoundPreference
       : fallback.resultSoundPreference
 
-    return { users, chores, assignments, historyCounts, choreHistoryCounts, resultSoundPreference }
+    return { users, chores, assignments, historyCounts, choreHistoryCounts, battleUserIdsThisRound, resultSoundPreference }
   } catch {
     return fallback
   }
@@ -122,13 +128,16 @@ export function sanitizeAssignments(assignments: unknown, users: User[], chores:
   })
 }
 
-export type RandomBattleResult = {
-  loserUserId: string
-  participantUserIds: string[]
-  transferredChoreIds: string[]
-  winnerUserIds: string[]
-  wageredAssignments: Assignment[]
-  assignments: Assignment[]
+export type HistoryWager = {
+  userId: string
+  choreId: string
+  amount: number
+}
+
+export type HistoryBattleResult = {
+  winnerUserId: string
+  loserUserIds: string[]
+  transferredWagers: HistoryWager[]
   historyCounts: HistoryStats
   choreHistoryCounts: ChoreHistoryStats
 }
@@ -182,85 +191,71 @@ export function transferAssignmentOwner({
   }
 }
 
-function pickWeightedBattleLoser(userIds: string[], assignments: Assignment[], rng: () => number) {
-  const weightedUsers = userIds.map((userId) => ({
-    userId,
-    weight: assignments.filter((assignment) => assignment.userId === userId).length,
-  }))
-  const totalWeight = weightedUsers.reduce((total, user) => total + user.weight, 0)
-  let roll = rng() * totalWeight
-
-  for (const user of weightedUsers) {
-    roll -= user.weight
-
-    if (roll <= 0) {
-      return user.userId
-    }
-  }
-
-  return weightedUsers[weightedUsers.length - 1].userId
-}
-
-export function resolveRandomBattle({
-  assignments,
-  eligibleUserIds,
+export function resolveHistoryBattle({
+  participantUserIds,
+  wagers,
   historyCounts,
   choreHistoryCounts,
   rng = Math.random,
 }: {
-  assignments: Assignment[]
-  eligibleUserIds: string[]
+  participantUserIds: string[]
+  wagers: HistoryWager[]
   historyCounts: HistoryStats
   choreHistoryCounts: ChoreHistoryStats
   rng?: () => number
-}): RandomBattleResult | null {
-  const eligibleWithAssignments = eligibleUserIds.filter((userId) =>
-    assignments.some((assignment) => assignment.userId === userId),
-  )
-
-  if (eligibleWithAssignments.length < 2) {
+}): HistoryBattleResult | null {
+  if (participantUserIds.length < 2 || new Set(participantUserIds).size !== participantUserIds.length) {
     return null
   }
 
-  const wageredAssignments = assignments.filter((assignment) => eligibleWithAssignments.includes(assignment.userId))
-  const loserUserId = pickWeightedBattleLoser(eligibleWithAssignments, wageredAssignments, rng)
-  const transferredChoreIds: string[] = []
-  let nextAssignments = assignments
-  let nextHistoryCounts = historyCounts
-  let nextChoreHistoryCounts = choreHistoryCounts
+  const normalizedWagers = wagers.filter((wager) => (
+    participantUserIds.includes(wager.userId)
+    && typeof wager.choreId === 'string'
+    && Number.isInteger(wager.amount)
+    && wager.amount > 0
+  ))
+  const wagerTotals = new Map(participantUserIds.map((userId) => [userId, 0]))
 
-  for (const assignment of wageredAssignments) {
-    if (assignment.userId === loserUserId) {
-      continue
-    }
+  for (const wager of normalizedWagers) {
+    const available = choreHistoryCounts[wager.choreId]?.[wager.userId] ?? 0
+    const committed = wagerTotals.get(`${wager.userId}:${wager.choreId}`) ?? 0
 
-    const transferred = transferAssignmentOwner({
-      choreId: assignment.choreId,
-      fromUserId: assignment.userId,
-      toUserId: loserUserId,
-      assignments: nextAssignments,
-      historyCounts: nextHistoryCounts,
-      choreHistoryCounts: nextChoreHistoryCounts,
-    })
-
-    if (!transferred) {
+    if (committed + wager.amount > available) {
       return null
     }
 
-    transferredChoreIds.push(assignment.choreId)
-    nextAssignments = transferred.assignments
-    nextHistoryCounts = transferred.historyCounts
-    nextChoreHistoryCounts = transferred.choreHistoryCounts
+    wagerTotals.set(`${wager.userId}:${wager.choreId}`, committed + wager.amount)
+    wagerTotals.set(wager.userId, (wagerTotals.get(wager.userId) ?? 0) + wager.amount)
+  }
+
+  if (participantUserIds.some((userId) => (wagerTotals.get(userId) ?? 0) === 0)) return null
+
+  const winnerUserId = participantUserIds[Math.min(Math.floor(rng() * participantUserIds.length), participantUserIds.length - 1)]
+  const loserUserIds = participantUserIds.filter((userId) => userId !== winnerUserId)
+  const transferredWagers = normalizedWagers.filter((wager) => loserUserIds.includes(wager.userId))
+  const transferredAmount = transferredWagers.reduce((total, wager) => total + wager.amount, 0)
+  const nextChoreHistoryCounts = { ...choreHistoryCounts }
+
+  for (const wager of transferredWagers) {
+    nextChoreHistoryCounts[wager.choreId] = {
+      ...nextChoreHistoryCounts[wager.choreId],
+      [wager.userId]: (nextChoreHistoryCounts[wager.choreId]?.[wager.userId] ?? 0) - wager.amount,
+      [winnerUserId]: (nextChoreHistoryCounts[wager.choreId]?.[winnerUserId] ?? 0) + wager.amount,
+    }
   }
 
   return {
-    loserUserId,
-    participantUserIds: eligibleWithAssignments,
-    transferredChoreIds,
-    winnerUserIds: eligibleWithAssignments.filter((userId) => userId !== loserUserId),
-    wageredAssignments,
-    assignments: nextAssignments,
-    historyCounts: nextHistoryCounts,
+    winnerUserId,
+    loserUserIds,
+    transferredWagers,
+    historyCounts: {
+      ...historyCounts,
+      [winnerUserId]: (historyCounts[winnerUserId] ?? 0) + transferredAmount,
+      ...loserUserIds.reduce<HistoryStats>((counts, userId) => ({
+        ...counts,
+        [userId]: Math.max((historyCounts[userId] ?? 0) - (wagerTotals.get(userId) ?? 0), 0),
+      }), {}),
+    },
     choreHistoryCounts: nextChoreHistoryCounts,
   }
 }
