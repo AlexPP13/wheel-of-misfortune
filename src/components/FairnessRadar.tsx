@@ -58,7 +58,7 @@ function FairnessRadar({
                     <div className="min-w-0">
                       <p className="truncate text-base font-semibold text-stone-900">{user.name}</p>
                       <p className="text-sm text-stone-700/80">
-                        {count} chores across all rounds
+                        {count} delegations across all rounds
                       </p>
                     </div>
                     <div className="rounded-full border border-[#8d683a] bg-[#e3c792] px-3 py-1 text-xs font-black text-stone-900">
@@ -67,6 +67,7 @@ function FairnessRadar({
                   </div>
 
                   <div className="grid gap-2">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-700/70">Audit trail</p>
                     {chores.map((chore) => {
                       const choreCounts = choreHistoryCounts[chore.id] ?? {}
                       const choreTotal = users.reduce((sum, item) => sum + (choreCounts[item.id] ?? 0), 0)
@@ -78,7 +79,7 @@ function FairnessRadar({
                           <div className="flex items-center justify-between gap-3 text-sm text-stone-800">
                             <span className="min-w-0 truncate">{chore.name}</span>
                             <span className="shrink-0 font-black">
-                              {(choreShare * 100).toFixed(0)}% · {choreUserCount}/{choreTotal}
+                              {choreUserCount} · {(choreShare * 100).toFixed(0)}%
                             </span>
                           </div>
                           <div className="h-2.5 overflow-hidden rounded-full border border-[#8d683a]/60 bg-[#dec28a]">
